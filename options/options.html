@@ -57,6 +57,10 @@
                 <p class="focus-score-description">Summary of your Pomodoro activity.</p>
               </div>
             </div>
+            <!-- Insights banner: cycles through useful tips/metrics -->
+            <div id="insightsBanner" class="summary-metric-box" style="margin-bottom: 16px; display: none">
+              <div id="insightsBannerText" aria-live="polite">Loading insights…</div>
+            </div>
             <div class="stats-dashboard">
               <div class="calendar-column">
                 <div class="calendar-container">
@@ -338,6 +342,20 @@
                 Receive browser notifications when a Pomodoro work session or break ends. If not enabled, you may need
                 to grant notification permission to the extension.
               </p>
+            </div>
+
+            <h3>Block Distracting Categories During Work</h3>
+            <div class="form-group">
+              <label for="pomodoroBlockDuringWorkCheckbox" class="checkbox-label-clickable">Enable blocking during Work sessions</label>
+              <div class="checkbox-group-inline">
+                <input type="checkbox" id="pomodoroBlockDuringWorkCheckbox" />
+                <span class="setting-description">When a Work session starts, selected categories below will be blocked. Unblocked automatically on break or stop/pause.</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="pomodoroBlockedCategoriesSelect">Categories to block during Work:</label>
+              <select id="pomodoroBlockedCategoriesSelect" multiple size="6" style="min-width: 240px"></select>
+              <p class="setting-description">Tip: Hold Ctrl (Windows) or Cmd (macOS) to select multiple categories.</p>
             </div>
           </section>
         </div>

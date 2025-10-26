@@ -20,6 +20,56 @@ function displayDomainTime(itemsToDisplay) {
     timeSpan.className = 'time';
     li.appendChild(domainSpan);
     li.appendChild(timeSpan);
+
+    // Inline category info or assignment (for domains currently in 'Other')
+    try {
+      if (typeof getCategoryForDomain === 'function' && AppState && AppState.categoryAssignments && AppState.categories) {
+        const currentCategory = getCategoryForDomain(
+          item.domain,
+          AppState.categoryAssignments,
+          AppState.categories
+        );
+
+        const controlsContainer = document.createElement('span');
+        controlsContainer.className = 'inline-category-control';
+
+        if (currentCategory && currentCategory !== 'Other') {
+          const catBadge = document.createElement('span');
+          catBadge.className = 'inline-category-badge';
+          catBadge.textContent = currentCategory;
+          controlsContainer.appendChild(catBadge);
+        } else {
+          // Build a compact select to assign a category quickly
+          const select = document.createElement('select');
+          select.className = 'inline-category-select';
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.textContent = 'Assign category…';
+          select.appendChild(defaultOpt);
+          // Populate with categories (excluding 'Other' to encourage classification)
+          AppState.categories
+            .filter((c) => c && c !== 'Other')
+            .forEach((cat) => {
+              const opt = document.createElement('option');
+              opt.value = cat;
+              opt.textContent = cat;
+              select.appendChild(opt);
+            });
+
+          select.addEventListener('change', (e) => {
+            const chosen = e.target.value;
+            if (!chosen) return;
+            if (typeof handleInlineAssignCategoryForDomain === 'function') {
+              handleInlineAssignCategoryForDomain(item.domain, chosen, currentCategory || 'Other');
+            }
+          });
+          controlsContainer.appendChild(select);
+        }
+        li.appendChild(controlsContainer);
+      }
+    } catch (err) {
+      console.warn('[UI] Error building inline category assign control:', err);
+    }
     UIElements.detailedTimeList.appendChild(li);
   });
 }
@@ -1048,6 +1098,60 @@ function updateItemDetailDisplay(isInitialCall = false) {
 
       li.appendChild(nameSpan);
       li.appendChild(timeSpan);
+      // Inline category info or assignment (for domains currently in 'Other')
+      try {
+        if (
+          typeof getCategoryForDomain === 'function' &&
+          AppState &&
+          AppState.categoryAssignments &&
+          AppState.categories
+        ) {
+          const currentCategory = getCategoryForDomain(
+            item.name,
+            AppState.categoryAssignments,
+            AppState.categories
+          );
+
+          const controlsContainer = document.createElement('span');
+          controlsContainer.className = 'inline-category-control';
+
+          if (currentCategory && currentCategory !== 'Other') {
+            const catBadge = document.createElement('span');
+            catBadge.className = 'inline-category-badge';
+            catBadge.textContent = currentCategory;
+            controlsContainer.appendChild(catBadge);
+          } else {
+            // Build a compact select to assign a category quickly
+            const select = document.createElement('select');
+            select.className = 'inline-category-select';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = 'Assign category…';
+            select.appendChild(defaultOpt);
+            // Populate with categories (excluding 'Other' to encourage classification)
+            AppState.categories
+              .filter((c) => c && c !== 'Other')
+              .forEach((cat) => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                select.appendChild(opt);
+              });
+
+            select.addEventListener('change', (e) => {
+              const chosen = e.target.value;
+              if (!chosen) return;
+              if (typeof handleInlineAssignCategoryForDomain === 'function') {
+                handleInlineAssignCategoryForDomain(item.name, chosen, currentCategory || 'Other');
+              }
+            });
+            controlsContainer.appendChild(select);
+          }
+          li.appendChild(controlsContainer);
+        }
+      } catch (err) {
+        console.warn('[UI] Error building inline category assign control (item detail):', err);
+      }
       UIElements.itemDetailList.appendChild(li);
     });
 

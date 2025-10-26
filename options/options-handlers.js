@@ -1486,3 +1486,35 @@ function handleItemDetailNext() {
     updateItemDetailDisplay(false); // Pass false for isInitialCall
   }
 }
+
+// Inline assignment from dashboard list for domains currently categorized as 'Other'
+async function handleInlineAssignCategoryForDomain(domain, newCategory, oldCategory = 'Other') {
+  try {
+    if (!domain || !newCategory) return;
+
+    // Update in-memory assignments
+    const existing = AppState.categoryAssignments || {};
+    const prevCategory = existing[domain] || oldCategory || 'Other';
+    existing[domain] = newCategory;
+    AppState.categoryAssignments = existing;
+
+    // Persist and notify
+    await saveCategoriesAndAssignments();
+
+    // Recalculate category totals fast using existing helper
+    if (typeof recalculateAndUpdateCategoryTotals === 'function') {
+      await recalculateAndUpdateCategoryTotals({
+        type: 'assignmentChange',
+        domain,
+        oldCategory: prevCategory,
+        newCategory,
+      });
+    }
+
+    // Refresh dashboard UI for current range/date
+    if (typeof updateDisplayForSelectedRangeUI === 'function') updateDisplayForSelectedRangeUI(false);
+  } catch (e) {
+    console.error('[Inline Assign] Failed to assign category for domain:', domain, e);
+    alert('Failed to assign category. Please try again.');
+  }
+}

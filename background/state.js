@@ -20,6 +20,8 @@ const FocusFlowState = {
   // In-memory cache for performance-critical operations
   activeBlockingRules: [],
   activeCategoryAssignments: {},
+  // Ephemeral rules injected during Pomodoro Work sessions (not persisted)
+  ephemeralPomodoroRules: [],
 
   // Constants for Tracking & Storage
   STORAGE_KEY_TRACKING_STATE: 'currentTrackingState',

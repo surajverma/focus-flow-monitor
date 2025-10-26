@@ -23,8 +23,15 @@ async function processStateUpdateQueue() {
 async function updateRuleAndAssignmentCache() {
   try {
     const result = await browser.storage.local.get(['rules', 'categoryAssignments']);
-    FocusFlowState.activeBlockingRules = result.rules || [];
+    const persistedRules = result.rules || [];
+    // Merge persisted rules with ephemeral Pomodoro rules (if any)
+    const ephemeral = Array.isArray(FocusFlowState.ephemeralPomodoroRules)
+      ? FocusFlowState.ephemeralPomodoroRules
+      : [];
+    FocusFlowState.activeBlockingRules = [...persistedRules, ...ephemeral];
     FocusFlowState.activeCategoryAssignments = result.categoryAssignments || {};
+    // Keep the base assignments in sync for getCategoryForDomain utility
+    FocusFlowState.categoryAssignments = result.categoryAssignments || {};
     console.log('[Cache] Updated active blocking rules and assignments in memory.');
   } catch (err) {
     console.error('[Cache] Failed to update caches:', err);
@@ -45,6 +52,9 @@ let pomodoroSettings = {
   },
   sessionsBeforeLongBreak: 4,
   notifyEnabled: true,
+  // New settings for dynamic blocking during Work phase
+  blockDuringWorkEnabled: false,
+  blockedCategoriesDuringWork: [],
 };
 
 // Active state of the timer
@@ -204,11 +214,17 @@ async function loadPomodoroStateAndSettings() {
       pomodoroSettings.durations = loadedSettings.durations || defaultDurations;
       pomodoroSettings.sessionsBeforeLongBreak = loadedSettings.sessionsBeforeLongBreak || defaultSessions;
       pomodoroSettings.notifyEnabled = loadedSettings.notifyEnabled !== undefined ? loadedSettings.notifyEnabled : true;
+      pomodoroSettings.blockDuringWorkEnabled = !!loadedSettings.blockDuringWorkEnabled;
+      pomodoroSettings.blockedCategoriesDuringWork = Array.isArray(loadedSettings.blockedCategoriesDuringWork)
+        ? loadedSettings.blockedCategoriesDuringWork
+        : [];
     } else {
       // No settings saved, use defaults
       pomodoroSettings.durations = defaultDurations;
       pomodoroSettings.sessionsBeforeLongBreak = defaultSessions;
       pomodoroSettings.notifyEnabled = true; // Default to true
+      pomodoroSettings.blockDuringWorkEnabled = false;
+      pomodoroSettings.blockedCategoriesDuringWork = [];
       console.log('[Pomodoro Load] No stored settings, using defaults.');
     }
 
@@ -266,6 +282,29 @@ async function loadPomodoroStateAndSettings() {
   }
 }
 
+// --- Ephemeral Pomodoro blocking rules helpers (global) ---
+function clearEphemeralPomodoroRules() {
+  FocusFlowState.ephemeralPomodoroRules = [];
+}
+
+async function updateEphemeralPomodoroRulesForPhase(phase) {
+  try {
+    if (phase === POMODORO_PHASES.WORK && pomodoroSettings.blockDuringWorkEnabled) {
+      const cats = Array.isArray(pomodoroSettings.blockedCategoriesDuringWork)
+        ? pomodoroSettings.blockedCategoriesDuringWork
+        : [];
+      FocusFlowState.ephemeralPomodoroRules = cats
+        .filter(Boolean)
+        .map((cat) => ({ type: 'block-category', value: cat }));
+    } else {
+      clearEphemeralPomodoroRules();
+    }
+  } catch (e) {
+    console.error('[Pomodoro] Failed to update ephemeral rules for phase:', phase, e);
+    clearEphemeralPomodoroRules();
+  }
+}
+
 function setupPomodoroPhase(phase, sessionsCompleted = pomodoroState.workSessionsCompleted) {
   if (pomodoroState.timerIntervalId) clearInterval(pomodoroState.timerIntervalId);
   pomodoroState.timerIntervalId = null;
@@ -280,6 +319,9 @@ function setupPomodoroPhase(phase, sessionsCompleted = pomodoroState.workSession
   updatePomodoroBadge();
   sendPomodoroStatusToPopups();
   savePomodoroStateAndSettings();
+
+  // Update ephemeral rules based on phase
+  updateEphemeralPomodoroRulesForPhase(phase).then(updateRuleAndAssignmentCache);
 }
 
 function recordPomodoroSession(phase, durationSeconds) {
@@ -371,6 +413,11 @@ function startPomodoroTimer() {
   updatePomodoroBadge();
   sendPomodoroStatusToPopups();
   savePomodoroStateAndSettings();
+
+  // If starting in Work, ensure ephemeral rules are active
+  if (pomodoroState.currentPhase === POMODORO_PHASES.WORK) {
+    updateEphemeralPomodoroRulesForPhase(POMODORO_PHASES.WORK).then(updateRuleAndAssignmentCache);
+  }
 }
 
 function pausePomodoroTimer() {
@@ -384,6 +431,10 @@ function pausePomodoroTimer() {
   updatePomodoroBadge();
   sendPomodoroStatusToPopups();
   savePomodoroStateAndSettings();
+
+  // On pause, remove ephemeral rules to unblock
+  clearEphemeralPomodoroRules();
+  updateRuleAndAssignmentCache();
 }
 
 function resetPomodoroTimer(resetCycle = false) {
@@ -406,6 +457,10 @@ function resetPomodoroTimer(resetCycle = false) {
   updatePomodoroBadge();
   sendPomodoroStatusToPopups();
   savePomodoroStateAndSettings();
+
+  // On reset, remove ephemeral rules
+  clearEphemeralPomodoroRules();
+  updateRuleAndAssignmentCache();
 }
 
 function skipPomodoroPhase() {
@@ -582,6 +637,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
           pomodoroSettings.sessionsBeforeLongBreak = loadedSettings.sessionsBeforeLongBreak || defaultSessions;
           pomodoroSettings.notifyEnabled =
             loadedSettings.notifyEnabled !== undefined ? loadedSettings.notifyEnabled : true;
+          pomodoroSettings.blockDuringWorkEnabled = !!loadedSettings.blockDuringWorkEnabled;
+          pomodoroSettings.blockedCategoriesDuringWork = Array.isArray(loadedSettings.blockedCategoriesDuringWork)
+            ? loadedSettings.blockedCategoriesDuringWork
+            : [];
 
           if (
             pomodoroState.timerState === 'stopped' ||
@@ -618,6 +677,9 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.error(`[System Background] Error reloading pomodoro settings in background:`, err);
         sendResponse({ success: false, message: 'Error reloading pomodoro settings in background.' });
       }
+      // After settings reload, refresh ephemeral rules for current phase and cache
+      await updateEphemeralPomodoroRulesForPhase(pomodoroState.currentPhase);
+      await updateRuleAndAssignmentCache();
     } else if (request.action === 'getPomodoroStatus') {
       let currentNotifyEnabled = pomodoroSettings.notifyEnabled;
       let settingChangedInStorage = false;
