@@ -444,6 +444,29 @@ button.export-button:hover {
   font-size: 0.85em;
   margin-right: var(--spacing-xs);
 }
+
+/* Inline category assignment/badge for domain and item detail lists */
+#detailedTimeList li .inline-category-control,
+#itemDetailList li .inline-category-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+#detailedTimeList li .inline-category-badge,
+#itemDetailList li .inline-category-badge {
+  background-color: var(--bg-alternate-row);
+  color: var(--text-color-secondary);
+  padding: 2px 6px;
+  border-radius: var(--border-radius);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+#detailedTimeList li .inline-category-select,
+#itemDetailList li .inline-category-select {
+  min-width: 160px;
+  padding: 4px 8px;
+  font-size: var(--font-size-sm);
+}
 #ruleList li .rule-info {
   flex-grow: 1;
   margin-right: var(--spacing-md);
@@ -1430,6 +1453,15 @@ button.action-button.secondary:hover {
   padding-bottom: var(--spacing-sm);
 }
 
+/* Insights banner */
+#insightsBanner {
+  display: none; /* shown when data available */
+}
+#insightsBanner #insightsBannerText {
+  font-size: var(--font-size-base);
+  color: var(--text-color-primary);
+}
+
 .top-summary-area .productivity-score-container {
   min-height: auto;
 }
@@ -1738,6 +1770,12 @@ button.action-button.secondary:hover {
     color: var(--accent-color-red);
   }
 
+  /* Inline category control dark mode tweaks */
+  #detailedTimeList li .inline-category-badge {
+    background-color: #48484a;
+    color: var(--text-color-primary);
+  }
+
   .settings-list .rating-controls label {
     color: var(--text-color-secondary);
   }
@@ -1843,10 +1881,7 @@ button.action-button.secondary:hover {
   /* Inherits .stats-list-container styles for padding, background, border, shadow */
 }
 
-#itemDetailSection h3#itemDetailTitle {
-  /* Inherits .stats-list-container h3 styles for general appearance */
-  /* Specific overrides if needed, but defaults should be good */
-}
+/* #itemDetailSection h3#itemDetailTitle intentionally inherits defaults */
 
 #itemDetailPeriodDisplay {
   font-weight: 500;
@@ -1903,14 +1938,7 @@ button.action-button.secondary:hover {
   box-shadow: var(--shadow-focus);
 }
 
-#itemDetailList {
-  /* Inherits .stats-list-container ul styles for border, padding, list-style */
-}
-
-#itemDetailList li {
-  /* Inherits shared li styles for padding, border-bottom, font-size, etc. */
-  /* Specific overrides if needed, but shared styles should cover most */
-}
+/* #itemDetailList and its li elements inherit shared list styles */
 
 #itemDetailPagination {
   margin-top: var(--spacing-md, 12px);
@@ -1930,13 +1958,7 @@ button.action-button.secondary:hover {
     background-color: var(--bg-hover-row, #38383a);
   }
 
-  #itemDetailSection {
-    /* Inherits dark mode .stats-list-container */
-  }
-
-  #itemDetailSection h3#itemDetailTitle {
-    /* Inherits dark mode .stats-list-container h3 */
-  }
+  /* #itemDetailSection inherits dark mode styles */
 
   #itemDetailPeriodDisplay {
     color: var(--text-color-secondary);
@@ -1957,12 +1979,7 @@ button.action-button.secondary:hover {
     color: var(--text-color-secondary);
   }
 
-  #itemDetailList {
-    /* Inherits dark mode .stats-list-container ul */
-  }
-  #itemDetailList li {
-    /* Inherits dark mode shared li styles */
-  }
+  /* #itemDetailList inherits dark mode list styles */
 
   /* Ensure dark mode consistency for list item parts in #itemDetailList */
   #itemDetailList li .domain {

@@ -321,6 +321,37 @@ async function loadAllData() {
     }
     await updatePomodoroPermissionStatusDisplay();
 
+    // Populate Pomodoro Work blocking settings
+    const blockDuringWorkEnabled = !!pomodoroSettingsStorage.blockDuringWorkEnabled;
+    const blockedCats = Array.isArray(pomodoroSettingsStorage.blockedCategoriesDuringWork)
+      ? pomodoroSettingsStorage.blockedCategoriesDuringWork
+      : [];
+    if (UIElements.pomodoroBlockDuringWorkCheckbox) {
+      UIElements.pomodoroBlockDuringWorkCheckbox.checked = blockDuringWorkEnabled;
+    }
+    if (UIElements.pomodoroBlockedCategoriesSelect) {
+      UIElements.pomodoroBlockedCategoriesSelect.replaceChildren();
+      const selectableCategories = (AppState.categories || []).filter((c) => c && c !== 'Other');
+      selectableCategories.forEach((cat) => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        if (blockedCats.includes(cat)) opt.selected = true;
+        UIElements.pomodoroBlockedCategoriesSelect.appendChild(opt);
+      });
+      // If previously saved categories are no longer present, keep them visible as disabled
+      blockedCats
+        .filter((c) => !selectableCategories.includes(c))
+        .forEach((missing) => {
+          const opt = document.createElement('option');
+          opt.value = missing;
+          opt.textContent = `${missing} (missing)`;
+          opt.selected = true;
+          opt.disabled = true;
+          UIElements.pomodoroBlockedCategoriesSelect.appendChild(opt);
+        });
+    }
+
     AppState.allPomodoroDailyStats = result[STORAGE_KEY_POMODORO_STATS_DAILY] || {};
 
     const pomodoroAllTimeStatsStorage = result[STORAGE_KEY_POMODORO_STATS_ALL_TIME];
@@ -431,7 +462,9 @@ function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
           typeof getCurrentDateString === 'function' ? getCurrentDateString() : new Date().toISOString().split('T')[0];
         if (typeof highlightSelectedCalendarDay === 'function') highlightSelectedCalendarDay(AppState.selectedDateStr);
       }
-      updateStatsDisplay(domainData, categoryData, label, AppState.selectedDateStr, isRangeView);
+  updateStatsDisplay(domainData, categoryData, label, AppState.selectedDateStr, isRangeView);
+  // Update insights banner with current stats
+  updateInsightsBanner(label, domainData, categoryData);
 
       const noDataForPeriod =
         Object.keys(domainData).length === 0 && Object.keys(categoryData).length === 0 && !isRangeView;
@@ -445,7 +478,8 @@ function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
       }
     } catch (e) {
       console.error(`Error processing range ${dataFetchKey}:`, e);
-      updateStatsDisplay({}, {}, label, AppState.selectedDateStr, isRangeView);
+  updateStatsDisplay({}, {}, label, AppState.selectedDateStr, isRangeView);
+  updateInsightsBanner(label, {}, {});
       if (typeof displayPomodoroStats === 'function') {
         displayPomodoroStats(label, true);
       }
@@ -1099,6 +1133,37 @@ function setupEventListeners() {
       UIElements.pomodoroEnableNotificationsCheckbox.addEventListener('change', handlePomodoroNotificationToggle);
     }
 
+    // Save Pomodoro Work blocking settings when changed
+    if (UIElements.pomodoroBlockDuringWorkCheckbox) {
+      UIElements.pomodoroBlockDuringWorkCheckbox.addEventListener('change', async () => {
+        try {
+          const res = await browser.storage.local.get(STORAGE_KEY_POMODORO_SETTINGS);
+          const current = res[STORAGE_KEY_POMODORO_SETTINGS] || {};
+          current.blockDuringWorkEnabled = UIElements.pomodoroBlockDuringWorkCheckbox.checked;
+          await browser.storage.local.set({ [STORAGE_KEY_POMODORO_SETTINGS]: current });
+          await browser.runtime.sendMessage({ action: 'pomodoroSettingsChanged' });
+        } catch (e) {
+          console.error('[Options] Failed to save blockDuringWorkEnabled:', e);
+        }
+      });
+    }
+    if (UIElements.pomodoroBlockedCategoriesSelect) {
+      UIElements.pomodoroBlockedCategoriesSelect.addEventListener('change', async () => {
+        try {
+          const selected = Array.from(UIElements.pomodoroBlockedCategoriesSelect.options)
+            .filter((o) => o.selected && !o.disabled && o.value)
+            .map((o) => o.value);
+          const res = await browser.storage.local.get(STORAGE_KEY_POMODORO_SETTINGS);
+          const current = res[STORAGE_KEY_POMODORO_SETTINGS] || {};
+          current.blockedCategoriesDuringWork = selected;
+          await browser.storage.local.set({ [STORAGE_KEY_POMODORO_SETTINGS]: current });
+          await browser.runtime.sendMessage({ action: 'pomodoroSettingsChanged' });
+        } catch (e) {
+          console.error('[Options] Failed to save blockedCategoriesDuringWork:', e);
+        }
+      });
+    }
+
     if (UIElements.blockPageCustomHeadingInput && typeof handleBlockPageSettingChange === 'function')
       UIElements.blockPageCustomHeadingInput.addEventListener('change', () =>
         handleBlockPageSettingChange(
@@ -1178,4 +1243,85 @@ function setupEventListeners() {
   } catch (e) {
     console.error('[Options Main] Error setting up event listeners:', e);
   }
+}
+
+// --- Insights banner logic ---
+let insightsRotationTimer = null;
+let lastInsightsForLabel = '';
+
+function computeInsightsMessages(label, domainData, categoryData) {
+  try {
+    const messages = [];
+    const totalSeconds = Object.values(domainData || {}).reduce((s, t) => s + t, 0);
+    const focus = typeof calculateFocusScore === 'function' ? calculateFocusScore(categoryData, AppState.categoryProductivityRatings) : { score: 0, totalTime: 0 };
+
+    // Top distracting category insight
+    const distractingCats = Object.entries(categoryData || {})
+      .filter(([cat]) => (AppState.categoryProductivityRatings?.[cat] ?? (defaultCategoryProductivityRatings?.[cat] ?? 0)) < 0)
+      .sort((a, b) => b[1] - a[1]);
+    if (distractingCats.length > 0) {
+      const [topCat, topTime] = distractingCats[0];
+      if (topTime >= 3600) {
+        const timeText = typeof formatTime === 'function' ? formatTime(topTime, true) : `${Math.round(topTime/60)}m`;
+        messages.push(`${timeText} on ${topCat}. Consider limiting it during Work to boost focus.`);
+      } else {
+        // Not enough time to single out a category; provide a generalized tip instead
+        messages.push('Small steps add up — try a Work session to build momentum.');
+      }
+    }
+
+    // Average per-day estimate if in a range
+    if (label === 'This Week' || label === 'This Month' || label === 'All Time') {
+      let days = 0;
+      if (label === 'This Week') days = 7;
+      else if (label === 'This Month') days = new Date().getDate();
+      else days = Math.max(1, Object.keys(AppState.dailyDomainData || {}).length);
+      const avgPerDay = totalSeconds / days;
+      messages.push(`Avg ${typeof formatTime === 'function' ? formatTime(avgPerDay, true) : `${Math.round(avgPerDay/60)}m`}/day over ${label.toLowerCase()}.`);
+    }
+
+    // Focus score nudge
+    if (focus && typeof focus.score === 'number') {
+      if (focus.score < 50) messages.push(`Focus Score ${focus.score}%. Try a few Pomodoros to raise it.`);
+      else if (focus.score >= 80) messages.push(`Great job! Focus Score ${focus.score}% — keep the streak.`);
+    }
+
+    // Pomodoro encouragement
+    const todayStr = typeof getCurrentDateString === 'function' ? getCurrentDateString() : new Date().toISOString().split('T')[0];
+    const todayStats = AppState.allPomodoroDailyStats?.[todayStr];
+    if (!todayStats || (todayStats.workSessions || 0) === 0) {
+      messages.push('Tip: Start a Work session to enter deep focus mode.');
+    } else {
+      const w = todayStats.workSessions || 0;
+      messages.push(`You’ve completed ${w} work ${w === 1 ? 'session' : 'sessions'} today. Nice.`);
+    }
+
+    if (messages.length === 0) {
+      messages.push('Insights will appear here as you accumulate data.');
+    }
+    return messages;
+  } catch (e) {
+    console.warn('[Insights] Failed to compute messages:', e);
+    return ['Insights unavailable.'];
+  }
+}
+
+function updateInsightsBanner(label, domainData, categoryData) {
+  if (!UIElements.insightsBanner || !UIElements.insightsBannerText) return;
+  const msgs = computeInsightsMessages(label, domainData, categoryData);
+  if (!msgs || msgs.length === 0) {
+    UIElements.insightsBanner.style.display = 'none';
+    return;
+  }
+  UIElements.insightsBanner.style.display = 'block';
+  let i = 0;
+  UIElements.insightsBannerText.textContent = msgs[i];
+  if (insightsRotationTimer) {
+    clearInterval(insightsRotationTimer);
+    insightsRotationTimer = null;
+  }
+  insightsRotationTimer = setInterval(() => {
+    i = (i + 1) % msgs.length;
+    UIElements.insightsBannerText.textContent = msgs[i];
+  }, 7000);
 }

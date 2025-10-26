@@ -186,12 +186,18 @@ function queryUIElements() {
   UIElements.pomodoroSettingsError = document.getElementById('pomodoroSettingsError');
   UIElements.pomodoroEnableNotificationsCheckbox = document.getElementById('pomodoroEnableNotificationsCheckbox');
   UIElements.pomodoroNotificationPermissionStatus = document.getElementById('pomodoroNotificationPermissionStatus');
+  // Pomodoro Work blocking controls
+  UIElements.pomodoroBlockDuringWorkCheckbox = document.getElementById('pomodoroBlockDuringWorkCheckbox');
+  UIElements.pomodoroBlockedCategoriesSelect = document.getElementById('pomodoroBlockedCategoriesSelect');
 
   // --- Pomodoro Stats UI Elements (Dashboard) ---
   UIElements.pomodoroStatsContainer = document.getElementById('pomodoroStatsContainer');
   UIElements.pomodoroStatsLabel = document.getElementById('pomodoroStatsLabel');
   UIElements.pomodoroSessionsCompletedEl = document.getElementById('pomodoroSessionsCompleted');
   UIElements.pomodoroTimeFocusedEl = document.getElementById('pomodoroTimeFocused');
+  // Insights banner
+  UIElements.insightsBanner = document.getElementById('insightsBanner');
+  UIElements.insightsBannerText = document.getElementById('insightsBannerText');
 
   // START: Updated UI element references for Breakdown Details Section
   UIElements.itemDetailSection = document.getElementById('itemDetailSection');
