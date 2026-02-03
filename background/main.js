@@ -186,6 +186,8 @@ async function savePomodoroStateAndSettings() {
         durations: pomodoroSettings.durations,
         sessionsBeforeLongBreak: pomodoroSettings.sessionsBeforeLongBreak,
         notifyEnabled: pomodoroSettings.notifyEnabled,
+        blockDuringWorkEnabled: pomodoroSettings.blockDuringWorkEnabled,
+        blockedCategoriesDuringWork: pomodoroSettings.blockedCategoriesDuringWork,
       },
       // Pomodoro stats are saved via FocusFlowState by performSave in storage.js
     });
