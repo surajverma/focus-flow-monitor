@@ -16,6 +16,7 @@ Focus Flow Monitor helps you understand your online habits by tracking the time 
 ---
 
 **Quick Links**
+
 - [What's New](#whats-new-in-version-0901-beta)
 - [Key Features](#key-features)
 - [Privacy](#privacy)
@@ -49,8 +50,13 @@ For more details on this and previous updates, check out the [Releases Page](htt
 - **Focus Score:** Rate your website categories (e.g., Productive, Neutral, Distracting) to generate a daily focus score, helping you gauge your productivity at a glance.
 - **Site Blocking & Limiting:**
   - Set daily time limits for specific websites or entire categories.
+  - Choose calendar-day, calendar-week, or calendar-month limits (weeks start Monday).
   - Permanently block access to distracting websites.
   - **Scheduled Blocking** – Define specific days and times for your block rules to be active.
+  - Use domain, exact URL, or URL-prefix matching with explicit exceptions.
+- **Current-site action:** Block or unblock the active website directly from the popup.
+- **Focus profiles:** Create local allow-list profiles, start or stop them manually, and keep the active profile visible in the options page.
+- **Weekly insights:** Review local focus score comparisons, top domains, category totals, daily limit periods, and best focus days.
 - **Customizable Block Page:** Personalize the experience when a site is blocked with custom messages, motivational quotes, and control over displayed information.
 - **Data Management:**
   - Export your complete tracking history and settings for backup.
@@ -106,6 +112,11 @@ Starting with version 0.9.0.1, the version available on GitHub Releases will be 
 
 ## Usage Notes
 
+- **Rule precedence:** Disabled rules do not match; explicit URL modes are more specific than domain modes; a matching exception allows a broader block; among matching blocks, the most specific target wins.
+- **Path matching:** Exact URL and URL-prefix rules use Firefox navigation URLs. Single-page applications that do not expose navigation changes may require a normal page navigation before a path rule can take effect.
+- **Focus profiles:** An active profile allows only its configured domains and categories. Firefox internal pages and extension pages remain available. Stop the profile from the Options page to restore normal browsing.
+- **Backups:** New `.ffm` files include schema version, extension version, and export timestamp. Legacy unversioned backups are accepted, sanitized, and migrated before storage.
+
 - **Tracking Inactivity:** To accurately capture activities like video watching or reading, tracking pauses only when you're inactive (no mouse or keyboard input) for a duration you can configure (default is 30 minutes; options range from 1 minute to 1 hour, or can be disabled).
 - **Accessing Options Page:** You can access detailed statistics, manage categories, set site rules (including schedules and block page customization), and configure all settings via the extension's options page.
   - Right-click the extension icon in the Firefox toolbar → "Manage Extension" → "Preferences/Options" (⚙️ icon).
@@ -127,7 +138,6 @@ Starting with version 0.9.0.1, the version available on GitHub Releases will be 
 
 **Dashboard**
 ![dashboard](https://github.com/user-attachments/assets/51a27e18-9b6b-4bea-8202-d221b1030f8a)
-
 
 **Content Control**
 ![content-control](https://github.com/user-attachments/assets/abcbf7b4-616d-4808-acc2-ddb4dff6b854)
@@ -167,6 +177,19 @@ We welcome contributions from the community! Whether it's reporting a bug, sugge
 3.  Click on "Load Temporary Add-on...".
 4.  Browse to the directory where you cloned the repository and select the `manifest.json` file (or the specific manifest for the version you are working on, e.g., `manifest-beta.json` if you set one up).
 5.  The extension will now be loaded. To see changes you make to the code, you'll typically need to reload the extension from the `about:debugging` page (using the "Reload" button for the extension).
+
+### Local Development Commands
+
+```bash
+npm install
+npm run check          # validation, lint, formatting, and Jest
+npm test -- --watch   # focused development loop
+npm run build:dev     # beta package in dist/beta
+npm run build         # version-selected production package
+npm run build:release # stable production package in dist/release
+```
+
+The background page loads browser-independent modules from `src/core/` before the Firefox Manifest V2 scripts. Tracking data, profiles, exclusions, and backups remain in `browser.storage.local`; the extension has no account, server, analytics, or remote-code path.
 
 [⬆️ Back to Top](#focus-flow-monitor)
 ---

@@ -16,19 +16,7 @@ function getCurrentDateString() {
  * @returns {string|null} The domain name or null if invalid.
  */
 function getDomain(url) {
-  if (!url || !(url.startsWith('http:') || url.startsWith('https:'))) {
-    return null;
-  }
-  try {
-    if (url.startsWith('about:') || url.startsWith('moz-extension:') || url.startsWith('chrome-extension:')) {
-      return null;
-    }
-    const hostname = new URL(url).hostname;
-    if (!hostname) return null;
-    return hostname.startsWith('www.') ? hostname.substring(4) : hostname;
-  } catch (e) {
-    return null;
-  }
+  return typeof extractAndNormalizeHostname === 'function' ? extractAndNormalizeHostname(url) : null;
 }
 
 /**
@@ -43,14 +31,14 @@ function getCategoryForDomain(domain) {
 
   if (!domain) return defaultCat;
 
-  if (assignments.hasOwnProperty(domain)) {
+  if (Object.hasOwn(assignments, domain)) {
     return assignments[domain];
   }
 
   const parts = domain.split('.');
   for (let i = 1; i < parts.length; i++) {
     const wildcardPattern = '*.' + parts.slice(i).join('.');
-    if (assignments.hasOwnProperty(wildcardPattern)) {
+    if (Object.hasOwn(assignments, wildcardPattern)) {
       return assignments[wildcardPattern];
     }
   }

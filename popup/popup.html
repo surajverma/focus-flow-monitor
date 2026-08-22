@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -16,52 +16,68 @@
         <button id="optionsBtn" class="header-btn icon-btn" title="Settings">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" class="settings-svg-icon">
             <path
-              d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z" />
+              d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"
+            />
           </svg>
         </button>
       </header>
 
-      <section class="summary-section">
-        <div id="currentDate" class="date-display">Loading date...</div>
-        <div id="totalTimeToday" class="total-time">--h --m --s</div>
-        <div id="focusScoreToday" class="focus-score">Focus Score: --%</div>
+      <main class="popup-dashboard">
+        <section class="summary-section">
+          <div class="section-heading">Today</div>
+          <div id="currentDate" class="date-display">Loading date...</div>
+          <div id="totalTimeToday" class="total-time">--h --m --s</div>
+          <div id="focusScoreToday" class="focus-score">Focus Score: --%</div>
 
-        <div id="summaryToggleArea" class="summary-toggle-area">
-          <h4 id="summaryViewTitle" class="summary-view-title">Top Categories</h4>
-          <button id="summaryToggleBtn" class="popup-icon-btn" title="Toggle View">
-            <span id="summaryToggleIcon">🔄</span>
-          </button>
-        </div>
-        <div id="todaySummary" class="today-summary">Loading summary...</div>
-        <div id="categoryProgressBar" class="progress-bar-container" style="display: none"></div>
-      </section>
+          <div id="summaryToggleArea" class="summary-toggle-area">
+            <h4 id="summaryViewTitle" class="summary-view-title">Top Categories</h4>
+            <button id="summaryToggleBtn" class="popup-icon-btn" title="Toggle View">
+              <span id="summaryToggleIcon">🔄</span>
+            </button>
+          </div>
+          <div id="todaySummary" class="today-summary">Loading summary...</div>
+          <div id="categoryProgressBar" class="progress-bar-container" style="display: none"></div>
+        </section>
 
-      <section class="hourly-chart-section">
-        <h4>Hourly Usage</h4>
-        <div class="chart-wrapper"><canvas id="hourlyChartCanvas"></canvas></div>
-      </section>
+        <section class="hourly-chart-section">
+          <h4>Hourly Usage</h4>
+          <div class="chart-wrapper"><canvas id="hourlyChartCanvas"></canvas></div>
+        </section>
 
-      <section id="pomodoro-section" class="pomodoro-section">
-        <div class="pomodoro-section-header">
-          <h4>Tomato Clock</h4>
-          <button
-            id="pomodoro-notify-toggle"
-            class="pomodoro-icon-btn title-align-icon"
-            aria-label="Toggle Notifications"
-            title="Toggle Notifications">
-            <span id="pomodoro-notify-icon">🔔</span>
-          </button>
-        </div>
-        <div id="pomodoro-timer-display" class="pomodoro-timer-display">
-          <span id="pomodoro-phase">Work</span> <span id="pomodoro-time">25:00</span>
-        </div>
-        <div class="pomodoro-controls">
-          <button id="pomodoro-start-pause-btn" class="pomodoro-btn">Start</button>
-          <button id="pomodoro-reset-btn" class="pomodoro-btn">Reset</button>
-          <button id="pomodoro-change-phase-btn" class="pomodoro-btn">Switch Timer</button>
-        </div>
-        <div id="pomodoro-status-message" class="pomodoro-status"></div>
-      </section>
+        <section id="pomodoro-section" class="pomodoro-section">
+          <div class="pomodoro-section-header">
+            <h4>Tomato Clock</h4>
+            <button
+              id="pomodoro-notify-toggle"
+              class="pomodoro-icon-btn title-align-icon"
+              aria-label="Toggle Notifications"
+              title="Toggle Notifications"
+            >
+              <span id="pomodoro-notify-icon">🔔</span>
+            </button>
+          </div>
+          <div id="pomodoro-timer-display" class="pomodoro-timer-display">
+            <span id="pomodoro-phase">Work</span> <span id="pomodoro-time">25:00</span>
+          </div>
+          <div id="pomodoro-today-stats" class="pomodoro-today-stats" hidden></div>
+          <div class="pomodoro-controls">
+            <button id="pomodoro-start-pause-btn" class="pomodoro-btn">Start</button>
+            <button id="pomodoro-reset-btn" class="pomodoro-btn">Reset</button>
+            <button id="pomodoro-change-phase-btn" class="pomodoro-btn">Switch Timer</button>
+          </div>
+          <div id="pomodoro-status-message" class="pomodoro-status"></div>
+        </section>
+
+        <section id="current-site-actions" class="current-site-actions" aria-labelledby="current-site-heading">
+          <h4 id="current-site-heading">Current Site</h4>
+          <div class="current-site-row">
+            <p id="current-site-domain">Loading...</p>
+            <div id="current-site-category" class="current-site-category">Loading category...</div>
+            <div id="current-site-controls" class="site-action-grid"></div>
+            <div id="current-site-status" class="status-message" aria-live="polite"></div>
+          </div>
+        </section>
+      </main>
 
       <div id="custom-confirm-modal" class="modal-overlay" style="display: none">
         <div class="modal-content">
@@ -75,6 +91,10 @@
     </div>
     <script src="../libs/chart.umd.js"></script>
     <script src="../options/options-utils.js"></script>
+    <script src="../src/core/domain-matcher.js"></script>
+    <script src="../src/core/categories.js"></script>
+    <script src="../src/core/rules.js"></script>
     <script src="popup.js"></script>
+    <script src="current-site-actions.js"></script>
   </body>
 </html>

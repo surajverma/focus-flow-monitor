@@ -22,22 +22,32 @@ async function processStateUpdateQueue() {
 // New function to update the in-memory cache for blocking rules
 async function updateRuleAndAssignmentCache() {
   try {
-    const result = await browser.storage.local.get(['rules', 'categoryAssignments']);
+    const result = await browser.storage.local.get([
+      'rules',
+      'categoryAssignments',
+      'profiles',
+      'activeFocusProfile',
+      'trackingExclusions',
+    ]);
     const persistedRules = result.rules || [];
     // Merge persisted rules with ephemeral Pomodoro rules (if any)
-    const ephemeral = Array.isArray(FocusFlowState.ephemeralPomodoroRules)
-      ? FocusFlowState.ephemeralPomodoroRules
-      : [];
+    const ephemeral = Array.isArray(FocusFlowState.ephemeralPomodoroRules) ? FocusFlowState.ephemeralPomodoroRules : [];
     FocusFlowState.activeBlockingRules = [...persistedRules, ...ephemeral];
     FocusFlowState.activeCategoryAssignments = result.categoryAssignments || {};
     // Keep the base assignments in sync for getCategoryForDomain utility
     FocusFlowState.categoryAssignments = result.categoryAssignments || {};
+    FocusFlowState.profiles = Array.isArray(result.profiles) ? result.profiles : [];
+    FocusFlowState.activeFocusProfile = result.activeFocusProfile || null;
+    FocusFlowState.trackingExclusions = result.trackingExclusions || {};
     console.log('[Cache] Updated active blocking rules and assignments in memory.');
   } catch (err) {
     console.error('[Cache] Failed to update caches:', err);
     // Fallback to empty on error to prevent faulty blocking
     FocusFlowState.activeBlockingRules = [];
     FocusFlowState.activeCategoryAssignments = {};
+    FocusFlowState.profiles = [];
+    FocusFlowState.activeFocusProfile = null;
+    FocusFlowState.trackingExclusions = {};
   }
 }
 
@@ -64,6 +74,7 @@ let pomodoroState = {
   workSessionsCompleted: 0,
   timerState: 'stopped', // 'stopped', 'running', 'paused'
   timerIntervalId: null,
+  deadlineAt: null,
 };
 
 /**
@@ -124,8 +135,8 @@ function updatePomodoroBadge() {
       pomodoroState.currentPhase === POMODORO_PHASES.WORK
         ? '#28a745' // Green for work
         : pomodoroState.currentPhase === POMODORO_PHASES.SHORT_BREAK
-        ? '#fd7e14' // Orange for short break
-        : '#ffc107'; // Yellow for long break
+          ? '#fd7e14' // Orange for short break
+          : '#ffc107'; // Yellow for long break
   } else if (pomodoroState.timerState === 'paused') {
     badgeText = '❚❚'; // Pause symbol
     badgeColor = '#808080'; // Grey for paused
@@ -180,6 +191,7 @@ async function savePomodoroStateAndSettings() {
         remainingTime: pomodoroState.remainingTime,
         workSessionsCompleted: pomodoroState.workSessionsCompleted,
         timerState: pomodoroState.timerState,
+        deadlineAt: pomodoroState.deadlineAt,
       },
       [FocusFlowState.STORAGE_KEY_POMODORO_SETTINGS]: {
         // User configurations
@@ -241,8 +253,11 @@ async function loadPomodoroStateAndSettings() {
           ? Math.min(persisted.remainingTime, currentPhaseDuration) // Ensure remaining time isn't > new duration
           : currentPhaseDuration;
       pomodoroState.workSessionsCompleted = persisted.workSessionsCompleted || 0;
-      // If the timer was 'running' when the browser closed/crashed, set it to 'paused' on load.
-      pomodoroState.timerState = persisted.timerState === 'running' ? 'paused' : persisted.timerState || 'stopped';
+      pomodoroState.deadlineAt = Number(persisted.deadlineAt) || null;
+      pomodoroState.timerState = persisted.timerState || 'stopped';
+      if (pomodoroState.timerState === 'running' && pomodoroState.deadlineAt) {
+        pomodoroState.remainingTime = Math.max(0, Math.ceil((pomodoroState.deadlineAt - Date.now()) / 1000));
+      }
     } else {
       // No persisted state, initialize from (potentially new) settings
       pomodoroState.currentPhase = POMODORO_PHASES.WORK;
@@ -264,6 +279,17 @@ async function loadPomodoroStateAndSettings() {
 
     if (settingsChangedOnLoad) {
       await savePomodoroStateAndSettings(); // Save if notifyEnabled was changed due to permission check
+    }
+
+    if (pomodoroState.timerState === 'running' && pomodoroState.deadlineAt > Date.now()) {
+      if (pomodoroState.currentPhase === POMODORO_PHASES.WORK) {
+        updateEphemeralPomodoroRulesForPhase(POMODORO_PHASES.WORK).then(updateRuleAndAssignmentCache);
+      }
+      if (pomodoroState.timerIntervalId) clearInterval(pomodoroState.timerIntervalId);
+      pomodoroState.timerIntervalId = setInterval(pomodoroTick, 1000);
+    } else if (pomodoroState.timerState === 'running') {
+      pomodoroState.remainingTime = 0;
+      pomodoroTick();
     }
 
     console.log('[Pomodoro] Initial state/settings loaded/set:', pomodoroState, pomodoroSettings);
@@ -314,6 +340,7 @@ function setupPomodoroPhase(phase, sessionsCompleted = pomodoroState.workSession
   pomodoroState.remainingTime = pomodoroSettings.durations[phase]; // Use configured duration
   pomodoroState.workSessionsCompleted = sessionsCompleted;
   pomodoroState.timerState = 'stopped';
+  pomodoroState.deadlineAt = null;
 
   console.log(
     `[Pomodoro] Phase set up: ${phase}, Duration: ${pomodoroState.remainingTime}s, Sessions Completed: ${sessionsCompleted}`
@@ -351,20 +378,17 @@ function recordPomodoroSession(phase, durationSeconds) {
 }
 
 function pomodoroTick() {
-  if (pomodoroState.timerState !== 'running' || pomodoroState.remainingTime <= 0) {
+  if (pomodoroState.timerState !== 'running') {
     if (pomodoroState.timerIntervalId) clearInterval(pomodoroState.timerIntervalId);
     pomodoroState.timerIntervalId = null;
-    if (pomodoroState.remainingTime > 0 && pomodoroState.timerState === 'running') {
-      // Timer was running but somehow remainingTime became non-positive without phase completion
-      pomodoroState.timerState = 'paused'; // Safety pause
-      updatePomodoroBadge();
-      sendPomodoroStatusToPopups();
-      savePomodoroStateAndSettings();
-    }
     return;
   }
 
-  pomodoroState.remainingTime--;
+  if (pomodoroState.deadlineAt) {
+    pomodoroState.remainingTime = Math.max(0, Math.ceil((pomodoroState.deadlineAt - Date.now()) / 1000));
+  } else {
+    pomodoroState.remainingTime--;
+  }
   updatePomodoroBadge(); // Update badge every second
   sendPomodoroStatusToPopups(); // Update popup every second
 
@@ -408,6 +432,7 @@ function startPomodoroTimer() {
   if (pomodoroState.timerState === 'running') return;
 
   pomodoroState.timerState = 'running';
+  pomodoroState.deadlineAt = Date.now() + pomodoroState.remainingTime * 1000;
   if (pomodoroState.timerIntervalId) clearInterval(pomodoroState.timerIntervalId);
   pomodoroState.timerIntervalId = setInterval(pomodoroTick, 1000);
 
@@ -428,6 +453,7 @@ function pausePomodoroTimer() {
   if (pomodoroState.timerIntervalId) clearInterval(pomodoroState.timerIntervalId);
   pomodoroState.timerIntervalId = null;
   pomodoroState.timerState = 'paused';
+  pomodoroState.deadlineAt = null;
 
   console.log('[Pomodoro] Timer paused.');
   updatePomodoroBadge();
@@ -451,6 +477,7 @@ function resetPomodoroTimer(resetCycle = false) {
   // Set remaining time based on potentially updated settings for the current phase
   pomodoroState.remainingTime = pomodoroSettings.durations[pomodoroState.currentPhase];
   pomodoroState.timerState = 'stopped';
+  pomodoroState.deadlineAt = null;
   pomodoroState.workSessionsCompleted = sessionsToSet;
 
   console.log(
@@ -610,6 +637,7 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (
       request.action === 'categoriesUpdated' ||
       request.action === 'rulesUpdated' ||
+      request.action === 'profilesUpdated' ||
       request.action === 'importedData'
     ) {
       console.log(`[System Background] Reloading config data due to ${request.action} message.`);

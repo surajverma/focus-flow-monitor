@@ -22,6 +22,10 @@ const FocusFlowState = {
   activeCategoryAssignments: {},
   // Ephemeral rules injected during Pomodoro Work sessions (not persisted)
   ephemeralPomodoroRules: [],
+  profiles: [],
+  activeFocusProfile: null,
+  trackingExclusions: {},
+  ignoredCategorizationSuggestions: {},
 
   // Constants for Tracking & Storage
   STORAGE_KEY_TRACKING_STATE: 'currentTrackingState',

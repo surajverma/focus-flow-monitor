@@ -1,9 +1,19 @@
-node_modules
-webpack.config.js
-dist
-scripts
-# package.json
-# package-lock.json
+node_modules/
+dist/
+coverage/
+web-ext-artifacts/
+
+*.log
+lint-output.txt
+lint-results.txt
+
+FINAL-REPORT.md
+IMPLEMENTATION.md
+PHASE-2-COMPLETION.md
+prompt.md
+.eslintrc.js
+
+.DS_Store
+Thumbs.db
 webpack.config__.js
 webpack.config_old.js
-scripts

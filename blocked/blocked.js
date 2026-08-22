@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const reasonParam = params.get('reason') || 'unknown';
   const typeParam = params.get('type') || 'unknown';
   const valueParam = params.get('value') || 'N/A';
-  const urlParam = params.get('url') || 'N/A';
+  const contextIdParam = params.get('contextId');
   const limitParam = params.get('limit');
   const spentParam = params.get('spent');
   const scheduleStartParam = params.get('schedule_start');
@@ -60,6 +60,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const motivationalQuoteContainerEl = document.getElementById('motivational-quote-container');
   const quoteTextEl = document.getElementById('quote-text');
   const goBackButton = document.getElementById('goBackButton');
+  const accessAvailableEl = document.getElementById('access-available');
+  const displayAccessAvailableEl = document.getElementById('display-access-available');
+
+  let blockContext = null;
+  if (contextIdParam && typeof getBlockContext === 'function') {
+    blockContext = await getBlockContext(contextIdParam);
+  }
 
   let settings = {};
   try {
@@ -105,16 +112,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     ruleContainerEl.style.display = settings[STORAGE_KEY_BLOCK_PAGE_SHOW_RULE] !== false ? 'block' : 'none';
   }
 
-  if (displayUrlEl) displayUrlEl.textContent = urlParam;
+  if (displayUrlEl) displayUrlEl.textContent = blockContext?.url || 'Current page';
 
   let reasonText = 'Access Blocked by Rule';
   let ruleText = 'Unknown Rule';
 
   if (reasonParam === 'limit') {
-    reasonText = 'Daily Time Limit Reached';
+    const limitType = blockContext?.details?.limitType || 'day';
+    reasonText = `${limitType[0].toUpperCase()}${limitType.slice(1)} Time Limit Reached`;
     if (limitInfoEl && spentEl && limitEl && limitParam !== null && spentParam !== null) {
-      const limitSec = parseInt(limitParam, 10);
-      const spentSec = parseInt(spentParam, 10);
+      const limitSec = Number(blockContext?.details?.limitSeconds || limitParam);
+      const spentSec = Number(blockContext?.details?.usedSeconds || spentParam);
       if (!isNaN(limitSec) && !isNaN(spentSec)) {
         spentEl.textContent = formatTime(spentSec, false); // Assuming formatTime is available globally or imported
         limitEl.textContent = formatTime(limitSec, false);
@@ -164,7 +172,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (displayReasonEl) displayReasonEl.textContent = reasonText;
   if (displayRuleEl) displayRuleEl.textContent = ruleText;
-
+  if (accessAvailableEl && displayAccessAvailableEl && blockContext?.details?.nextAvailable) {
+    const updateAvailability = () => {
+      displayAccessAvailableEl.textContent = formatTimeRemaining(blockContext.details.nextAvailable);
+      accessAvailableEl.style.display = 'block';
+    };
+    updateAvailability();
+    window.setInterval(updateAvailability, 1000);
+  }
   if (settings[STORAGE_KEY_BLOCK_PAGE_SHOW_QUOTE] && motivationalQuoteContainerEl && quoteTextEl) {
     const userQuotes = settings[STORAGE_KEY_BLOCK_PAGE_USER_QUOTES] || [];
     const quotesToShow = userQuotes.length > 0 ? userQuotes : DEFAULT_MOTIVATIONAL_QUOTES;

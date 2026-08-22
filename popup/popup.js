@@ -442,6 +442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pomodoroResetBtn = document.getElementById('pomodoro-reset-btn');
   const pomodoroStatusMessageEl = document.getElementById('pomodoro-status-message');
   const pomodoroChangePhaseBtn = document.getElementById('pomodoro-change-phase-btn');
+  const pomodoroTodayStatsEl = document.getElementById('pomodoro-today-stats');
 
   const pomodoroNotifyToggleBtn = document.getElementById('pomodoro-notify-toggle');
   const pomodoroNotifyIcon = document.getElementById('pomodoro-notify-icon');
@@ -511,6 +512,38 @@ document.addEventListener('DOMContentLoaded', async () => {
       ? getCurrentDateString
       : () => new Date().toISOString().split('T')[0].replace(/-/g, '-');
   const todayStr = dateStringFetcher();
+
+  function formatPomodoroFocusedTime(seconds) {
+    const safeSeconds = Math.max(0, Number(seconds) || 0);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  }
+
+  function renderPomodoroTodayStats(allDailyStats = {}) {
+    if (!pomodoroTodayStatsEl) return;
+    const todayStats = allDailyStats?.[todayStr] || {};
+    const sessions = Math.max(0, Math.floor(Number(todayStats.workSessions) || 0));
+    const focusedTime = formatPomodoroFocusedTime(todayStats.totalWorkTime);
+    pomodoroTodayStatsEl.textContent = `Today: ${sessions} ${sessions === 1 ? 'session' : 'sessions'} · ${focusedTime}`;
+    pomodoroTodayStatsEl.title = pomodoroTodayStatsEl.textContent;
+    pomodoroTodayStatsEl.hidden = false;
+  }
+
+  browser.storage.local
+    .get('pomodoroStatsDaily')
+    .then((result) => renderPomodoroTodayStats(result.pomodoroStatsDaily))
+    .catch(() => {
+      if (pomodoroTodayStatsEl) pomodoroTodayStatsEl.hidden = true;
+    });
+
+  if (browser.storage.onChanged?.addListener) {
+    browser.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && changes.pomodoroStatsDaily) {
+        renderPomodoroTodayStats(changes.pomodoroStatsDaily.newValue);
+      }
+    });
+  }
 
   browser.storage.local
     .get(['dailyDomainData', 'dailyCategoryData', 'hourlyData', 'categoryProductivityRatings'])

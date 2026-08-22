@@ -1,16 +1,31 @@
 {
   "name": "focus-flow-monitor",
-  "version": "0.9.3.1",
+  "version": "0.9.4.0",
   "description": "Master your online habits! Track time, visualize usage, block distractions, set limits, and enhance focus with the built-in Pomodoro (Tomato) timer.",
   "private": true,
   "scripts": {
     "update-manifests": "node scripts/update-versions.js",
     "build": "npm run clean && npm run update-manifests && webpack --mode production --progress",
+    "build:release": "npm run clean && webpack --mode production --env target=release --progress",
     "build:dev": "npm run update-manifests && webpack --mode development --progress",
-    "clean": "rimraf dist"
+    "clean": "node scripts/clean.js",
+    "lint": "eslint . --ext .js --ignore-pattern node_modules --ignore-pattern dist",
+    "lint:fix": "eslint . --ext .js --fix --ignore-pattern node_modules --ignore-pattern dist",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "validate": "node scripts/validate.js",
+    "check": "npm run validate && npm run lint && npm run format:check && npm test"
   },
   "devDependencies": {
+    "@babel/preset-env": "^8.0.2",
+    "@eslint/js": "^10.0.1",
     "copy-webpack-plugin": "^12.0.2",
+    "eslint": "^10.9.0",
+    "jest": "^30.4.2",
+    "prettier": "^3.9.6",
     "terser": "^5.31.0",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"

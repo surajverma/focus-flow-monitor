@@ -462,9 +462,9 @@ function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
           typeof getCurrentDateString === 'function' ? getCurrentDateString() : new Date().toISOString().split('T')[0];
         if (typeof highlightSelectedCalendarDay === 'function') highlightSelectedCalendarDay(AppState.selectedDateStr);
       }
-  updateStatsDisplay(domainData, categoryData, label, AppState.selectedDateStr, isRangeView);
-  // Update insights banner with current stats
-  updateInsightsBanner(label, domainData, categoryData);
+      updateStatsDisplay(domainData, categoryData, label, AppState.selectedDateStr, isRangeView);
+      // Update insights banner with current stats
+      updateInsightsBanner(label, domainData, categoryData);
 
       const noDataForPeriod =
         Object.keys(domainData).length === 0 && Object.keys(categoryData).length === 0 && !isRangeView;
@@ -478,8 +478,8 @@ function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
       }
     } catch (e) {
       console.error(`Error processing range ${dataFetchKey}:`, e);
-  updateStatsDisplay({}, {}, label, AppState.selectedDateStr, isRangeView);
-  updateInsightsBanner(label, {}, {});
+      updateStatsDisplay({}, {}, label, AppState.selectedDateStr, isRangeView);
+      updateInsightsBanner(label, {}, {});
       if (typeof displayPomodoroStats === 'function') {
         displayPomodoroStats(label, true);
       }
@@ -1253,16 +1253,21 @@ function computeInsightsMessages(label, domainData, categoryData) {
   try {
     const messages = [];
     const totalSeconds = Object.values(domainData || {}).reduce((s, t) => s + t, 0);
-    const focus = typeof calculateFocusScore === 'function' ? calculateFocusScore(categoryData, AppState.categoryProductivityRatings) : { score: 0, totalTime: 0 };
+    const focus =
+      typeof calculateFocusScore === 'function'
+        ? calculateFocusScore(categoryData, AppState.categoryProductivityRatings)
+        : { score: 0, totalTime: 0 };
 
     // Top distracting category insight
     const distractingCats = Object.entries(categoryData || {})
-      .filter(([cat]) => (AppState.categoryProductivityRatings?.[cat] ?? (defaultCategoryProductivityRatings?.[cat] ?? 0)) < 0)
+      .filter(
+        ([cat]) => (AppState.categoryProductivityRatings?.[cat] ?? defaultCategoryProductivityRatings?.[cat] ?? 0) < 0
+      )
       .sort((a, b) => b[1] - a[1]);
     if (distractingCats.length > 0) {
       const [topCat, topTime] = distractingCats[0];
       if (topTime >= 3600) {
-        const timeText = typeof formatTime === 'function' ? formatTime(topTime, true) : `${Math.round(topTime/60)}m`;
+        const timeText = typeof formatTime === 'function' ? formatTime(topTime, true) : `${Math.round(topTime / 60)}m`;
         messages.push(`${timeText} on ${topCat}. Consider limiting it during Work to boost focus.`);
       } else {
         // Not enough time to single out a category; provide a generalized tip instead
@@ -1277,7 +1282,9 @@ function computeInsightsMessages(label, domainData, categoryData) {
       else if (label === 'This Month') days = new Date().getDate();
       else days = Math.max(1, Object.keys(AppState.dailyDomainData || {}).length);
       const avgPerDay = totalSeconds / days;
-      messages.push(`Avg ${typeof formatTime === 'function' ? formatTime(avgPerDay, true) : `${Math.round(avgPerDay/60)}m`}/day over ${label.toLowerCase()}.`);
+      messages.push(
+        `Avg ${typeof formatTime === 'function' ? formatTime(avgPerDay, true) : `${Math.round(avgPerDay / 60)}m`}/day over ${label.toLowerCase()}.`
+      );
     }
 
     // Focus score nudge
@@ -1287,7 +1294,8 @@ function computeInsightsMessages(label, domainData, categoryData) {
     }
 
     // Pomodoro encouragement
-    const todayStr = typeof getCurrentDateString === 'function' ? getCurrentDateString() : new Date().toISOString().split('T')[0];
+    const todayStr =
+      typeof getCurrentDateString === 'function' ? getCurrentDateString() : new Date().toISOString().split('T')[0];
     const todayStats = AppState.allPomodoroDailyStats?.[todayStr];
     if (!todayStats || (todayStats.workSessions || 0) === 0) {
       messages.push('Tip: Start a Work session to enter deep focus mode.');

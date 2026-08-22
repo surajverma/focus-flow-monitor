@@ -48,8 +48,9 @@
   --spacing-xl: 24px;
   --spacing-xxl: 32px;
 
-  --font-family-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+  --font-family-sans-serif:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol';
   --font-size-base: 1rem;
   --font-size-sm: 0.875rem;
   --font-size-lg: 1.125rem;
@@ -72,6 +73,132 @@ body {
   flex-direction: column;
   min-height: 100vh;
   box-sizing: border-box;
+}
+
+.status-message[aria-live='polite'] {
+  min-height: 1.4em;
+}
+
+#weeklySummaryMetrics {
+  margin: 12px 0;
+}
+
+#profileList li,
+#exclusionList li,
+#weeklySummaryTopDomains li {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.profile-form {
+  align-items: end;
+  display: grid;
+  gap: var(--spacing-md);
+  grid-template-columns: minmax(190px, 0.8fr) minmax(300px, 1.25fr) auto auto;
+  margin-bottom: var(--spacing-lg);
+}
+
+.profile-form-field label,
+.profile-field-label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.profile-form-field input {
+  width: 100%;
+}
+
+.profile-schedule-field {
+  align-items: center;
+  display: grid;
+  gap: var(--spacing-xs);
+  grid-template-columns: auto 138px auto 138px;
+}
+
+.profile-schedule-field .profile-field-label {
+  grid-column: 1 / -1;
+}
+
+.profile-schedule-field label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.profile-schedule-field input[type='time'] {
+  min-width: 138px;
+  width: 138px;
+}
+
+.profile-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-controls,
+.rule-controls {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: var(--spacing-xs);
+}
+
+.profile-controls button,
+.rule-controls button {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.rule-controls label {
+  align-items: center;
+  display: inline-flex;
+  gap: var(--spacing-xs);
+  margin: 0 var(--spacing-xs) 0 0;
+  white-space: nowrap;
+}
+
+.rule-controls input[type='checkbox'] {
+  margin: 0;
+}
+
+.rule-tester-form input[type='text'] {
+  flex: 1 1 420px;
+  max-width: 620px;
+  min-width: 280px;
+}
+
+#ruleTesterResult {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1050px) {
+  .profile-form {
+    grid-template-columns: minmax(180px, 1fr) minmax(260px, 1.4fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .form-inline,
+  .site-action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .site-action-grid {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .container {
@@ -163,7 +290,9 @@ textarea {
   background-clip: padding-box;
   border: 1px solid var(--border-color-input);
   border-radius: var(--border-radius);
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
   box-sizing: border-box;
 }
 input[type='text']:focus,
@@ -227,7 +356,10 @@ button {
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   border-radius: var(--border-radius);
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out,
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
     box-shadow 0.15s ease-in-out;
 }
 button:focus {
@@ -469,6 +601,7 @@ button.export-button:hover {
 }
 #ruleList li .rule-info {
   flex-grow: 1;
+  min-width: 0;
   margin-right: var(--spacing-md);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -513,7 +646,10 @@ button.export-button:hover {
   text-decoration: none;
   padding: 3px 6px;
   border-radius: var(--border-radius, 0.3rem);
-  transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out, text-decoration 0.15s ease-in-out;
+  transition:
+    background-color 0.15s ease-in-out,
+    color 0.15s ease-in-out,
+    text-decoration 0.15s ease-in-out;
 }
 #categoryTimeList li .category-name:hover,
 #categoryTimeList li .category-name:focus {
@@ -608,8 +744,9 @@ button.export-button:hover {
 
 .time-input-schedule {
   padding: 5px;
-  max-width: 120px;
-  width: auto;
+  max-width: 150px;
+  min-width: 140px;
+  width: 140px;
   flex-grow: 0;
 }
 
@@ -1354,7 +1491,10 @@ button.action-button.secondary:hover {
   color: var(--text-color-secondary);
   font-size: var(--font-size-base);
   font-weight: 500;
-  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
   flex-grow: 1;
   text-align: center;
   border-radius: var(--border-radius) var(--border-radius) 0 0;

@@ -1,22 +1,22 @@
 {
   "manifest_version": 2,
   "name": "Focus Flow Monitor Beta",
-  "version": "0.9.3.1",
+  "version": "0.9.4.0",
   "description": "Master your online habits! Track time, visualize usage, block distractions, set limits, and enhance focus with the built-in Pomodoro (Tomato) timer.",
-  "permissions": [
-    "tabs",
-    "storage",
-    "idle",
-    "alarms",
-    "webRequest",
-    "webRequestBlocking",
-    "<all_urls>"
-  ],
-  "optional_permissions": [
-    "notifications"
-  ],
+  "permissions": ["tabs", "storage", "idle", "alarms", "webRequest", "webRequestBlocking", "<all_urls>"],
+  "optional_permissions": ["notifications"],
   "background": {
     "scripts": [
+      "src/core/domain-matcher.js",
+      "src/core/time-periods.js",
+      "src/core/tracking-intervals.js",
+      "src/core/schedules.js",
+      "src/core/rules.js",
+      "src/core/insights.js",
+      "src/core/profiles.js",
+      "src/core/schema.js",
+      "src/core/storage-manager.js",
+      "src/blocked-page/block-context.js",
       "background/utils.js",
       "background/state.js",
       "background/storage.js",
@@ -37,10 +37,7 @@
     "page": "options/options.html",
     "open_in_tab": true
   },
-  "web_accessible_resources": [
-    "data/default_config.json",
-    "blocked/blocked.html"
-  ],
+  "web_accessible_resources": ["data/default_config.json", "blocked/blocked.html"],
   "icons": {
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
@@ -50,9 +47,7 @@
       "id": "focusflow-monitor@bleuflex.com",
       "update_url": "https://www.bleuflex.com/addons-update/updates.json",
       "data_collection_permissions": {
-        "required": [
-          "none"
-        ]
+        "required": ["none"]
       }
     }
   }
