@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -31,6 +31,9 @@
           ><br />
           <span style="padding-left: 15px"><strong>Days:</strong> <span id="display-schedule-days"></span></span>
         </p>
+        <p id="access-available" style="display: none">
+          <strong>Access available:</strong> <span id="display-access-available"></span>
+        </p>
       </div>
 
       <div id="motivational-quote-container" class="motivational-quote" style="display: none">
@@ -41,6 +44,7 @@
     </div>
 
     <script src="../options/options-utils.js"></script>
+    <script src="../src/blocked-page/block-context.js"></script>
     <script src="blocked.js"></script>
   </body>
 </html>

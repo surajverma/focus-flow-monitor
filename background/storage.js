@@ -6,6 +6,8 @@
 // const DEFAULT_DATA_RETENTION_DAYS = 90; // 3 months
 // const SAVE_DATA_DEBOUNCE_MS = 3000; // 3 seconds
 
+const backgroundStorageManager = typeof createStorageManager === 'function' ? createStorageManager() : null;
+
 async function loadData() {
   console.log('[Storage] loadData started.');
   try {
@@ -28,7 +30,15 @@ async function loadData() {
       FocusFlowState.STORAGE_KEY_POMODORO_STATS_ALL_TIME,
     ];
 
-    const result = await browser.storage.local.get(keysToLoad);
+    const result = await browser.storage.local.get([
+      ...keysToLoad,
+      'schemaVersion',
+      'profiles',
+      'activeFocusProfile',
+      'trackingExclusions',
+    ]);
+    const migrated = typeof migrateData === 'function' ? migrateData(result) : result;
+    if (typeof validateSchema === 'function') validateSchema(migrated);
     console.log('[Storage] Config/History/Stats Data loaded from storage.');
 
     let needsSave = false; // Flag to check if initial save of defaults is needed
@@ -61,20 +71,23 @@ async function loadData() {
       result.categories && result.categories.length > 0
         ? result.categories
         : defaults
-        ? [...defaults.categories]
-        : ['Other'];
+          ? [...defaults.categories]
+          : ['Other'];
     FocusFlowState.categoryAssignments =
       result.categoryAssignments && Object.keys(result.categoryAssignments).length > 0
         ? result.categoryAssignments
         : defaults
-        ? { ...defaults.assignments }
-        : {};
-    FocusFlowState.rules = result.rules && Array.isArray(result.rules) ? result.rules : [];
+          ? { ...defaults.assignments }
+          : {};
+    FocusFlowState.rules = migrated.rules && Array.isArray(migrated.rules) ? migrated.rules : [];
     FocusFlowState.trackedData = result.trackedData || {};
     FocusFlowState.categoryTimeData = result.categoryTimeData || {};
     FocusFlowState.dailyDomainData = result.dailyDomainData || {};
     FocusFlowState.dailyCategoryData = result.dailyCategoryData || {};
     FocusFlowState.hourlyData = result.hourlyData || {};
+    FocusFlowState.profiles = Array.isArray(migrated.profiles) ? migrated.profiles : [];
+    FocusFlowState.activeFocusProfile = migrated.activeFocusProfile || null;
+    FocusFlowState.trackingExclusions = migrated.trackingExclusions || {};
 
     // Load Pomodoro Stats
     FocusFlowState.pomodoroDailyStats = result[FocusFlowState.STORAGE_KEY_POMODORO_STATS_DAILY] || {};
@@ -181,6 +194,10 @@ async function performSave() {
     categories: FocusFlowState.categories,
     categoryAssignments: FocusFlowState.categoryAssignments,
     rules: FocusFlowState.rules,
+    schemaVersion: typeof CURRENT_SCHEMA_VERSION === 'number' ? CURRENT_SCHEMA_VERSION : 2,
+    profiles: FocusFlowState.profiles,
+    activeFocusProfile: FocusFlowState.activeFocusProfile,
+    trackingExclusions: FocusFlowState.trackingExclusions,
     // Add Pomodoro stats to save
     [FocusFlowState.STORAGE_KEY_POMODORO_STATS_DAILY]: FocusFlowState.pomodoroDailyStats,
     [FocusFlowState.STORAGE_KEY_POMODORO_STATS_ALL_TIME]: FocusFlowState.pomodoroAllTimeStats,
@@ -188,7 +205,8 @@ async function performSave() {
 
   try {
     console.log('[Storage performSave] Attempting browser.storage.local.set with keys:', Object.keys(stateToSave));
-    await browser.storage.local.set(stateToSave);
+    if (backgroundStorageManager) await backgroundStorageManager.write(stateToSave);
+    else await browser.storage.local.set(stateToSave);
     console.log('[Storage performSave] Successfully saved state including Pomodoro stats.');
   } catch (error) {
     console.error('[Storage performSave] CRITICAL Error during browser.storage.local.set:', error);

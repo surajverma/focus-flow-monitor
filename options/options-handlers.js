@@ -669,10 +669,6 @@ function handleAddRule() {
         displayMessage(ADD_RULE_ERROR_ID, 'Please provide a Start Time if End Time is set for the schedule.', true);
         return;
       }
-      if (startTime && endTime && startTime >= endTime) {
-        displayMessage(ADD_RULE_ERROR_ID, 'Scheduled Start Time must be before End Time.', true);
-        return;
-      }
       const selectedDays = Array.from(UIElements.ruleDayCheckboxes)
         .filter((cb) => cb.checked)
         .map((cb) => cb.value);
@@ -688,7 +684,9 @@ function handleAddRule() {
       return;
     }
 
-    const newRule = { type, value };
+    const newRule = { id: `rule_${Date.now()}`, type, value, enabled: true, exceptions: [] };
+    if (type.includes('-url')) newRule.matchMode = document.getElementById('ruleMatchModeSelect')?.value || 'domain';
+    if (type.includes('limit-')) newRule.period = document.getElementById('rulePeriodSelect')?.value || 'day';
     if (limitSeconds !== null) newRule.limitSeconds = limitSeconds;
     if (startTime) newRule.startTime = startTime;
     if (endTime) newRule.endTime = endTime;
@@ -788,6 +786,8 @@ function handleEditRuleClick(event) {
   UIElements.editRuleScheduleGroup.style.display = isBlockType ? '' : 'none';
 
   if (isUrlType) UIElements.editRulePatternInput.value = rule.value;
+  const editMatchMode = document.getElementById('editRuleMatchModeSelect');
+  if (editMatchMode) editMatchMode.value = rule.matchMode || 'domain';
   if (isCategoryType) {
     if (typeof populateRuleCategorySelect === 'function') populateRuleCategorySelect();
     UIElements.editRuleCategorySelect.value = rule.value;
@@ -848,7 +848,11 @@ function handleSaveChangesClick() {
     return;
   }
   const originalRule = AppState.rules[editIndex];
-  const updatedRule = { type: originalRule.type };
+  const updatedRule = {
+    ...originalRule,
+    id: originalRule.id || `rule_${Date.now()}`,
+    enabled: originalRule.enabled !== false,
+  };
 
   const isUrlType = originalRule.type.includes('-url');
   const isCategoryType = originalRule.type.includes('-category');
@@ -870,6 +874,8 @@ function handleSaveChangesClick() {
       console.warn('isValidDomainPattern function not found, skipping advanced URL validation for editing rule.');
     }
     updatedRule.value = newVal;
+    updatedRule.matchMode =
+      document.getElementById('editRuleMatchModeSelect')?.value || originalRule.matchMode || 'domain';
   } else if (isCategoryType) {
     const newVal = UIElements.editRuleCategorySelect.value;
     const selOpt = UIElements.editRuleCategorySelect.options[UIElements.editRuleCategorySelect.selectedIndex];
@@ -899,10 +905,6 @@ function handleSaveChangesClick() {
     }
     if (!startTime && endTime) {
       alert('Please provide a Start Time if End Time is set.');
-      return;
-    }
-    if (startTime && endTime && startTime >= endTime) {
-      alert('Start Time must be before End Time.');
       return;
     }
     const selectedDays = Array.from(UIElements.editRuleDayCheckboxes)
@@ -1060,9 +1062,17 @@ async function handleExportData() {
       STORAGE_KEY_BLOCK_PAGE_SHOW_QUOTE,
       STORAGE_KEY_BLOCK_PAGE_USER_QUOTES,
       STORAGE_KEY_POMODORO_SETTINGS,
+      'profiles',
+      'activeFocusProfile',
+      'trackingExclusions',
+      'schemaVersion',
     ];
     const storedData = await browser.storage.local.get(keysToExport);
-    const dataToExport = {};
+    const dataToExport = {
+      version: 2,
+      extensionVersion: browser.runtime.getManifest().version,
+      timestamp: new Date().toISOString(),
+    };
     keysToExport.forEach((key) => {
       if (key === 'categories') dataToExport[key] = storedData[key] || ['Other'];
       else if (key === 'rules') dataToExport[key] = storedData[key] || [];
@@ -1128,6 +1138,11 @@ function handleImportFileChange(event) {
     let importedData;
     try {
       importedData = JSON.parse(e.target.result);
+      const candidate = { version: importedData.version || 1, ...importedData };
+      const validation = typeof validateBackup === 'function' ? validateBackup(candidate) : { valid: true };
+      if (!validation.valid && importedData.version) throw new Error(validation.errors.join('; '));
+      importedData = typeof sanitizeImportedData === 'function' ? sanitizeImportedData(candidate) : candidate;
+      if (typeof migrateData === 'function') importedData = migrateData(importedData);
       const requiredKeys = [
         'trackedData',
         'categories',

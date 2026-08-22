@@ -23,12 +23,13 @@ function displayDomainTime(itemsToDisplay) {
 
     // Inline category info or assignment (for domains currently in 'Other')
     try {
-      if (typeof getCategoryForDomain === 'function' && AppState && AppState.categoryAssignments && AppState.categories) {
-        const currentCategory = getCategoryForDomain(
-          item.domain,
-          AppState.categoryAssignments,
-          AppState.categories
-        );
+      if (
+        typeof getCategoryForDomain === 'function' &&
+        AppState &&
+        AppState.categoryAssignments &&
+        AppState.categories
+      ) {
+        const currentCategory = getCategoryForDomain(item.domain, AppState.categoryAssignments, AppState.categories);
 
         const controlsContainer = document.createElement('span');
         controlsContainer.className = 'inline-category-control';
@@ -353,7 +354,7 @@ function populateRuleList() {
         detailClass = 'rule-blocked';
       } else if (rule.type === 'limit-url' || rule.type === 'limit-category') {
         typeText = rule.type === 'limit-url' ? 'Limit URL' : 'Limit Cat';
-        detailContent = ` (Limit: ${formatTime(rule.limitSeconds || 0, false)}/day)`;
+        detailContent = ` (Limit: ${formatTime(rule.limitSeconds || 0, false)}/${rule.period || 'day'})`;
         detailClass = 'rule-limit';
       } else {
         typeText = 'Unknown Rule';
@@ -379,7 +380,16 @@ function populateRuleList() {
       }
 
       const buttonsDiv = document.createElement('div');
-      buttonsDiv.style.whiteSpace = 'nowrap';
+      buttonsDiv.className = 'rule-controls';
+      const enabledLabel = document.createElement('label');
+      enabledLabel.textContent = 'Enabled ';
+      const enabledToggle = document.createElement('input');
+      enabledToggle.type = 'checkbox';
+      enabledToggle.checked = rule.enabled !== false;
+      enabledToggle.className = 'rule-enabled-toggle';
+      enabledToggle.dataset.ruleIndex = index;
+      enabledLabel.appendChild(enabledToggle);
+      buttonsDiv.appendChild(enabledLabel);
       const editBtn = document.createElement('button');
       editBtn.textContent = 'Edit';
       editBtn.className = 'edit-btn';
@@ -1106,11 +1116,7 @@ function updateItemDetailDisplay(isInitialCall = false) {
           AppState.categoryAssignments &&
           AppState.categories
         ) {
-          const currentCategory = getCategoryForDomain(
-            item.name,
-            AppState.categoryAssignments,
-            AppState.categories
-          );
+          const currentCategory = getCategoryForDomain(item.name, AppState.categoryAssignments, AppState.categories);
 
           const controlsContainer = document.createElement('span');
           controlsContainer.className = 'inline-category-control';

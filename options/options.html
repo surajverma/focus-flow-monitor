@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -14,6 +14,7 @@
           <button class="tab-link active" data-tab="dashboardTab">📊 Dashboard</button>
           <button class="tab-link" data-tab="contentControlTab">🚦 Content Control</button>
           <button class="tab-link" data-tab="productivityTab">💪 Productivity</button>
+          <button class="tab-link" data-tab="insightsTab">📈 Insights & Profiles</button>
           <button class="tab-link" data-tab="generalSettingsTab">⚙️ Settings</button>
         </div>
 
@@ -43,7 +44,8 @@
               <div
                 id="totalTimeForRangeContainer"
                 class="summary-metric-box total-time-range-container"
-                style="display: none">
+                style="display: none"
+              >
                 <h3 id="totalTimeForRangeLabel">
                   Total Time Online (<span class="stats-period">Selected Period</span>)
                 </h3>
@@ -165,6 +167,18 @@
             </div>
           </section>
           <hr class="tab-section-divider" />
+          <section id="uncategorized-sites-section">
+            <h2>Uncategorized Websites</h2>
+            <p class="setting-description">Select tracked domains resolved to Other and assign them together.</p>
+            <div class="form-inline">
+              <label for="uncategorizedCategorySelect">Assign to:</label>
+              <select id="uncategorizedCategorySelect"></select>
+              <button id="assignUncategorizedBtn" class="action-button">Assign Selected</button>
+            </div>
+            <ul id="uncategorizedList" class="settings-list"></ul>
+            <div id="uncategorizedStatus" class="status-message" aria-live="polite"></div>
+          </section>
+          <hr class="tab-section-divider" />
           <section id="blocking-section">
             <h2>Site Blocking & Time Limiting</h2>
             <p>
@@ -178,6 +192,13 @@
                 <option value="limit-category">Limit Category</option>
               </select>
               <input type="text" id="rulePatternInput" placeholder="e.g., *.social.com" />
+              <label for="ruleMatchModeSelect">Match:</label>
+              <select id="ruleMatchModeSelect">
+                <option value="domain">Domain</option>
+                <option value="domain-subdomains">Domain and subdomains</option>
+                <option value="exact-url">Exact URL</option>
+                <option value="url-prefix">URL prefix</option>
+              </select>
               <select id="ruleCategorySelect">
                 <option value="">Select Category</option>
               </select>
@@ -188,6 +209,12 @@
                   <option value="hours">Hours</option>
                 </select>
                 <span> per day</span>
+                <label for="rulePeriodSelect">Period:</label>
+                <select id="rulePeriodSelect">
+                  <option value="day" selected>Day</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                </select>
               </div>
 
               <div class="schedule-inputs">
@@ -233,7 +260,8 @@
               <textarea
                 id="blockPageCustomMessage"
                 rows="3"
-                placeholder="e.g., This site is blocked to help you focus."></textarea>
+                placeholder="e.g., This site is blocked to help you focus."
+              ></textarea>
               <p class="setting-description">Set a custom message below the heading. Leave blank for default.</p>
             </div>
 
@@ -275,7 +303,8 @@
               <textarea
                 id="blockPageUserQuotes"
                 rows="5"
-                placeholder="e.g., The secret of getting ahead is getting started."></textarea>
+                placeholder="e.g., The secret of getting ahead is getting started."
+              ></textarea>
               <p class="setting-description">
                 If "Show Motivational Quote" is checked, one of these quotes (or a default one if this is empty) will be
                 displayed.
@@ -346,10 +375,15 @@
 
             <h3>Block Distracting Categories During Work</h3>
             <div class="form-group">
-              <label for="pomodoroBlockDuringWorkCheckbox" class="checkbox-label-clickable">Enable blocking during Work sessions</label>
+              <label for="pomodoroBlockDuringWorkCheckbox" class="checkbox-label-clickable"
+                >Enable blocking during Work sessions</label
+              >
               <div class="checkbox-group-inline">
                 <input type="checkbox" id="pomodoroBlockDuringWorkCheckbox" />
-                <span class="setting-description">When a Work session starts, selected categories below will be blocked. Unblocked automatically on break or stop/pause.</span>
+                <span class="setting-description"
+                  >When a Work session starts, selected categories below will be blocked. Unblocked automatically on
+                  break or stop/pause.</span
+                >
               </div>
             </div>
             <div class="form-group">
@@ -411,6 +445,74 @@
             <p id="importStatus" class="status-message"></p>
           </section>
         </div>
+
+        <div id="insightsTab" class="tab-content">
+          <section id="weekly-summary-section">
+            <h2>Weekly Summary</h2>
+            <p class="setting-description">
+              This report is calculated locally from the tracking data stored in Firefox.
+            </p>
+            <div id="weeklySummaryStatus" class="status-message" aria-live="polite">Loading summary...</div>
+            <div id="weeklySummaryMetrics" class="summary-metric-box"></div>
+            <ul id="weeklySummaryTopDomains" class="settings-list"></ul>
+          </section>
+          <hr class="tab-section-divider" />
+          <section id="focus-profiles-section">
+            <h2>Focus Profiles</h2>
+            <p class="setting-description">
+              Profiles provide an optional local allow-list mode. Empty allow-lists cannot be activated.
+            </p>
+            <div id="profileForm" class="profile-form">
+              <div class="profile-form-field profile-name-field">
+                <label for="profileNameInput">Name:</label>
+                <input id="profileNameInput" type="text" placeholder="e.g., Deep Focus" />
+              </div>
+              <div class="profile-form-field profile-domains-field">
+                <label for="profileDomainsInput">Allowed domains:</label>
+                <input id="profileDomainsInput" type="text" placeholder="example.com, docs.example.com" />
+              </div>
+              <div class="profile-schedule-field">
+                <span class="profile-field-label">Schedule:</span>
+                <label for="profileStartTimeInput">Start</label>
+                <input id="profileStartTimeInput" type="time" />
+                <label for="profileEndTimeInput">End</label>
+                <input id="profileEndTimeInput" type="time" />
+              </div>
+              <button id="saveProfileBtn" class="action-button primary">Save Profile</button>
+            </div>
+            <div id="profileStatus" class="status-message" aria-live="polite"></div>
+            <ul id="profileList" class="settings-list"></ul>
+          </section>
+          <hr class="tab-section-divider" />
+          <section id="tracking-exclusions-section">
+            <h2>Tracking Exclusions</h2>
+            <p class="setting-description">
+              Excluded domains are omitted from statistics and limits, but blocking rules remain independent.
+            </p>
+            <div class="form-inline">
+              <label for="exclusionDomainInput">Domain:</label>
+              <input id="exclusionDomainInput" type="text" placeholder="example.com" />
+              <button id="addExclusionBtn" class="action-button">Add Exclusion</button>
+            </div>
+            <ul id="exclusionList" class="settings-list"></ul>
+            <div id="privacySummary" class="status-message" aria-live="polite"></div>
+          </section>
+          <hr class="tab-section-divider" />
+          <section id="rule-tester-section">
+            <h2>Rule Tester</h2>
+            <div class="form-inline rule-tester-form">
+              <label for="ruleTesterUrl">Test URL:</label>
+              <input
+                id="ruleTesterUrl"
+                type="text"
+                inputmode="url"
+                placeholder="example.com or https://example.com/path"
+              />
+              <button id="testRuleBtn" class="action-button">Test URL</button>
+            </div>
+            <div id="ruleTesterResult" class="status-message" aria-live="polite"></div>
+          </section>
+        </div>
       </div>
       <div id="editRuleModal" class="modal">
         <div class="modal-content">
@@ -425,6 +527,13 @@
             <div class="form-group" id="editRulePatternGroup">
               <label for="editRulePatternInput">Pattern/URL:</label>
               <input type="text" id="editRulePatternInput" />
+              <label for="editRuleMatchModeSelect">Match mode:</label>
+              <select id="editRuleMatchModeSelect">
+                <option value="domain">Domain</option>
+                <option value="domain-subdomains">Domain and subdomains</option>
+                <option value="exact-url">Exact URL</option>
+                <option value="url-prefix">URL prefix</option>
+              </select>
             </div>
             <div class="form-group" id="editRuleCategoryGroup">
               <label for="editRuleCategorySelect">Category:</label>
@@ -498,10 +607,18 @@
       >
     </p>
     <script src="../libs/chart.umd.js"></script>
+    <script src="../src/core/domain-matcher.js"></script>
+    <script src="../src/core/categories.js"></script>
+    <script src="../src/core/rules.js"></script>
+    <script src="../src/core/insights.js"></script>
+    <script src="../src/core/profiles.js"></script>
+    <script src="../src/core/validation.js"></script>
+    <script src="../src/options/bulk-operations.js"></script>
     <script src="options-utils.js"></script>
     <script src="options-state.js"></script>
     <script src="options-ui.js"></script>
     <script src="options-handlers.js"></script>
     <script src="options-main.js"></script>
+    <script src="options-feature-polish.js"></script>
   </body>
 </html>

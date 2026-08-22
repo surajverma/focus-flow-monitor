@@ -1,30 +1,28 @@
-function recordTime(domain, seconds) {
+function recordTime(domain, seconds, timestamp = Date.now()) {
   if (!domain || seconds <= 0) {
     return;
   }
-  console.log(`[Tracking RecordTime] Recording ${seconds}s for domain: ${domain}`);
-
-  const todayStr = getCurrentDateString(); // From utils.js
-  const currentHour = new Date().getHours();
-  const currentHourStr = currentHour.toString().padStart(2, '0');
+  if (Object.hasOwn(FocusFlowState.trackingExclusions || {}, domain)) {
+    return;
+  }
+  const startTimestamp = timestamp - seconds * 1000;
+  const hourlyIntervals = splitIntervalByHour(startTimestamp, timestamp);
 
   try {
-    // Ensure data structures exist
-    if (!FocusFlowState.dailyDomainData[todayStr]) FocusFlowState.dailyDomainData[todayStr] = {};
-    if (!FocusFlowState.dailyCategoryData[todayStr]) FocusFlowState.dailyCategoryData[todayStr] = {};
-    if (!FocusFlowState.hourlyData[todayStr]) FocusFlowState.hourlyData[todayStr] = {};
-    if (!FocusFlowState.hourlyData[todayStr][currentHourStr]) FocusFlowState.hourlyData[todayStr][currentHourStr] = 0;
-
-    // --- Update State ---
     FocusFlowState.trackedData[domain] = (FocusFlowState.trackedData[domain] || 0) + seconds;
-    FocusFlowState.dailyDomainData[todayStr][domain] =
-      (FocusFlowState.dailyDomainData[todayStr][domain] || 0) + seconds;
-    FocusFlowState.hourlyData[todayStr][currentHourStr] += seconds;
-
     const category = getCategoryForDomain(domain); // From utils.js
     FocusFlowState.categoryTimeData[category] = (FocusFlowState.categoryTimeData[category] || 0) + seconds;
-    FocusFlowState.dailyCategoryData[todayStr][category] =
-      (FocusFlowState.dailyCategoryData[todayStr][category] || 0) + seconds;
+
+    hourlyIntervals.forEach(({ date, hour, seconds: intervalSeconds }) => {
+      if (!FocusFlowState.dailyDomainData[date]) FocusFlowState.dailyDomainData[date] = {};
+      if (!FocusFlowState.dailyCategoryData[date]) FocusFlowState.dailyCategoryData[date] = {};
+      if (!FocusFlowState.hourlyData[date]) FocusFlowState.hourlyData[date] = {};
+      FocusFlowState.dailyDomainData[date][domain] =
+        (FocusFlowState.dailyDomainData[date][domain] || 0) + intervalSeconds;
+      FocusFlowState.hourlyData[date][hour] = (FocusFlowState.hourlyData[date][hour] || 0) + intervalSeconds;
+      FocusFlowState.dailyCategoryData[date][category] =
+        (FocusFlowState.dailyCategoryData[date][category] || 0) + intervalSeconds;
+    });
 
     saveDataBatched(); // from storage.js
   } catch (error) {
@@ -113,6 +111,10 @@ async function updateTrackingStateImplementation(triggerContext = 'unknown') {
     }
 
     // --- State Machine Logic ---
+    if (elapsedSeconds < 0 || elapsedSeconds > 24 * 60 * 60) {
+      elapsedSeconds = 0;
+    }
+
     if (isActive) {
       // ACTIVE NOW
       const newState = { timestamp: now, domain: currentDomain };
@@ -120,6 +122,7 @@ async function updateTrackingStateImplementation(triggerContext = 'unknown') {
         // PREVIOUSLY ACTIVE
         if (finalDomainToRecord && elapsedSeconds > 0) {
           recordTime(finalDomainToRecord, elapsedSeconds);
+          await checkTimeLimitsAndRedirectIfNeeded();
         }
         try {
           await browser.storage.local.set({ [FocusFlowState.STORAGE_KEY_TRACKING_STATE]: newState });
@@ -141,6 +144,7 @@ async function updateTrackingStateImplementation(triggerContext = 'unknown') {
         // PREVIOUSLY ACTIVE -> STOP TRACKING
         if (finalDomainToRecord && elapsedSeconds > 0) {
           recordTime(finalDomainToRecord, elapsedSeconds);
+          await checkTimeLimitsAndRedirectIfNeeded();
         }
         try {
           await browser.storage.local.remove(FocusFlowState.STORAGE_KEY_TRACKING_STATE);
@@ -203,23 +207,34 @@ async function checkTimeLimitsAndRedirectIfNeeded() {
     let timeSpentToday = 0;
     let ruleMatches = false;
 
-    if (rule.type === 'limit-url' && urlMatchesPattern(activeTab.url, rule.value)) {
+    if (rule.type === 'limit-url' && ruleMatchesUrl(rule, activeTab.url)) {
       let timeSum = 0;
-      const targetValue = rule.value;
-      if (targetValue.startsWith('*.')) {
-        const basePattern = targetValue.substring(2);
-        for (const d in todaysDomainData) {
-          if (d === basePattern || d.endsWith('.' + basePattern)) {
-            timeSum += todaysDomainData[d];
-          }
+      if ((rule.period || 'day') === 'day') {
+        for (const [trackedDomain, trackedSeconds] of Object.entries(todaysDomainData)) {
+          if (domainPatternMatches(trackedDomain, rule.value, true)) timeSum += trackedSeconds;
         }
       } else {
-        timeSum = todaysDomainData[targetValue] || 0;
+        const start = startOfPeriod(new Date(), rule.period || 'day');
+        const end = getPeriodEnd(new Date(), rule.period || 'day');
+        const dates = getDateKeysBetween(start, end, dailyDomainData);
+        dates.forEach((date) => {
+          Object.entries(dailyDomainData[date] || {}).forEach(([trackedDomain, trackedSeconds]) => {
+            if (domainPatternMatches(trackedDomain, rule.value, true)) timeSum += trackedSeconds;
+          });
+        });
       }
       timeSpentToday = timeSum;
       ruleMatches = true;
     } else if (rule.type === 'limit-category' && category === rule.value) {
-      timeSpentToday = todaysCategoryData[rule.value] || 0;
+      if ((rule.period || 'day') === 'day') {
+        timeSpentToday = todaysCategoryData[rule.value] || 0;
+      } else {
+        const start = startOfPeriod(new Date(), rule.period || 'day');
+        const end = getPeriodEnd(new Date(), rule.period || 'day');
+        getDateKeysBetween(start, end, dailyCategoryData).forEach((date) => {
+          timeSpentToday += Number(dailyCategoryData[date]?.[rule.value]) || 0;
+        });
+      }
       ruleMatches = true;
     }
 
@@ -227,13 +242,27 @@ async function checkTimeLimitsAndRedirectIfNeeded() {
       console.log(`[Async Limit Check] Limit reached for ${domain}. Redirecting tab.`);
       const blockPageBaseUrl = browser.runtime.getURL('blocked/blocked.html');
       const params = new URLSearchParams({
-        url: activeTab.url,
         reason: 'limit',
         type: rule.type,
         value: rule.value,
         limit: rule.limitSeconds.toString(),
         spent: timeSpentToday.toString(),
       });
+      const blockContext =
+        typeof createBlockContext === 'function'
+          ? createBlockContext(domain, 'limit', {
+              ruleId: rule.id,
+              ruleType: rule.type,
+              limitType: rule.period || 'day',
+              limitSeconds: rule.limitSeconds,
+              usedSeconds: timeSpentToday,
+              nextAvailable: getPeriodEnd(new Date(), rule.period || 'day').getTime(),
+            })
+          : null;
+      if (blockContext && typeof storeBlockContext === 'function') {
+        params.set('contextId', blockContext.id);
+        storeBlockContext(blockContext).catch(() => {});
+      }
       try {
         // Prevent redirection loop if already on the block page
         if (!activeTab.url.startsWith(blockPageBaseUrl)) {
