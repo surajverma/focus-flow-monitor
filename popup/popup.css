@@ -852,14 +852,20 @@ body {
   color: var(--popup-text-secondary);
   flex: 0 1 auto;
   font-size: 0.82rem;
-  max-width: 120px;
+  max-width: 150px;
   min-width: 0;
 }
 
 .current-site-category-label {
+  background: var(--popup-options-btn-bg);
+  border: 1px solid var(--popup-options-btn-border);
+  border-radius: 999px;
+  color: var(--popup-text-primary);
   display: block;
-  max-width: 115px;
+  font-weight: 600;
+  max-width: 145px;
   overflow: hidden;
+  padding: 4px 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -908,4 +914,100 @@ body {
   grid-column: 1 / -1;
   text-align: center;
   width: 100%;
+}
+/* Compact cards matching the options workspace. */
+:root {
+  --popup-surface: #ffffff;
+  --popup-bg: #f7f8fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --popup-surface: #2c2c2e;
+    --popup-bg: #1c1c1e;
+  }
+}
+.popup-container {
+  padding: 12px;
+}
+.popup-header {
+  border: 0;
+  padding: 2px 4px 12px;
+  margin-bottom: 8px;
+}
+.title-area {
+  gap: 9px;
+}
+.title-text {
+  letter-spacing: -0.02em;
+}
+.popup-dashboard {
+  gap: 12px;
+}
+.popup-dashboard > section {
+  background: var(--popup-surface);
+  border: 1px solid var(--popup-header-border);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  padding: 12px;
+}
+.popup-dashboard .summary-section {
+  border-top: 3px solid var(--pomodoro-btn-primary-bg);
+}
+.section-heading,
+.hourly-chart-section h4,
+.pomodoro-section h4,
+.current-site-actions h4 {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+.total-time {
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.date-display {
+  color: var(--popup-text-secondary);
+}
+.pomodoro-timer-display {
+  background: var(--popup-bg);
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+#pomodoro-time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.pomodoro-btn,
+.site-action-button,
+.header-btn,
+.popup-icon-btn {
+  border-radius: 8px;
+}
+.current-site-actions {
+  margin-top: 0;
+}
+.current-site-row {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+#current-site-status {
+  white-space: normal;
+}
+button:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--pomodoro-btn-primary-bg);
+  outline-offset: 3px;
+}
+.modal-content {
+  border-radius: 14px;
+  padding: 24px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }

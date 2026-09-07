@@ -2,7 +2,16 @@ const js = require('@eslint/js');
 
 module.exports = [
   {
-    ignores: ['node_modules/**', 'dist/**', 'coverage/**', 'libs/**', 'options/**', 'popup/**', 'blocked/**'],
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'libs/**',
+      'options/*',
+      '!options/options-local-tools.js',
+      'popup/**',
+      'blocked/**',
+    ],
   },
   {
     files: ['background/**/*.js', 'src/**/*.js'],
@@ -55,7 +64,17 @@ module.exports = [
         isProfileAllowlisted: 'readonly',
         evaluateRules: 'readonly',
         ruleMatchesUrl: 'readonly',
+        ruleHasMatchingException: 'readonly',
+        getRuleMatchMode: 'readonly',
+        normalizeRuleTarget: 'readonly',
+        normalizeDomain: 'readonly',
         domainPatternMatches: 'readonly',
+        isRuleActive: 'readonly',
+        planHistoryDeletion: 'readonly',
+        backgroundStorageManager: 'readonly',
+        normalizeLocalGoal: 'readonly',
+        resolveInsightCategory: 'readonly',
+        getInsightRating: 'readonly',
         startOfPeriod: 'readonly',
         getPeriodEnd: 'readonly',
         getDateKeysBetween: 'readonly',
@@ -104,6 +123,30 @@ module.exports = [
   {
     files: ['src/core/**/*.js'],
     rules: { 'no-redeclare': 'off' },
+  },
+  {
+    files: ['options/options-local-tools.js'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'script',
+      globals: {
+        document: 'readonly',
+        window: 'readonly',
+        browser: 'readonly',
+        Option: 'readonly',
+        crypto: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        normalizeLocalGoal: 'readonly',
+        getLocalGoalProgress: 'readonly',
+        formatFeatureSeconds: 'readonly',
+        loadFeatureData: 'readonly',
+        loadAllData: 'readonly',
+        isValidDomainPattern: 'readonly',
+        normalizeDomain: 'readonly',
+      },
+    },
+    rules: { ...js.configs.recommended.rules, 'no-unused-vars': 'warn' },
   },
   {
     files: ['scripts/**/*.js'],

@@ -65,7 +65,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let blockContext = null;
   if (contextIdParam && typeof getBlockContext === 'function') {
-    blockContext = await getBlockContext(contextIdParam);
+    for (let attempt = 0; attempt < 4 && !blockContext; attempt += 1) {
+      blockContext = await getBlockContext(contextIdParam);
+      if (!blockContext && attempt < 3) await new Promise((resolve) => setTimeout(resolve, 40 * (attempt + 1)));
+    }
   }
 
   let settings = {};
@@ -117,7 +120,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   let reasonText = 'Access Blocked by Rule';
   let ruleText = 'Unknown Rule';
 
-  if (reasonParam === 'limit') {
+  if (reasonParam === 'profile') {
+    const profileName = blockContext?.details?.ruleName || valueParam;
+    reasonText = 'Blocked by Active Focus Profile';
+    ruleText = profileName && profileName !== 'N/A' ? `Focus Profile: "${profileName}"` : 'Active Focus Profile';
+    if (limitInfoEl) limitInfoEl.style.display = 'none';
+    if (scheduleInfoEl) scheduleInfoEl.style.display = 'none';
+  } else if (reasonParam === 'limit') {
     const limitType = blockContext?.details?.limitType || 'day';
     reasonText = `${limitType[0].toUpperCase()}${limitType.slice(1)} Time Limit Reached`;
     if (limitInfoEl && spentEl && limitEl && limitParam !== null && spentParam !== null) {
@@ -185,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const quotesToShow = userQuotes.length > 0 ? userQuotes : DEFAULT_MOTIVATIONAL_QUOTES;
     if (quotesToShow.length > 0) {
       const randomIndex = Math.floor(Math.random() * quotesToShow.length);
-      quoteTextEl.textContent = quotesToShow[randomIndex];
+      quoteTextEl.textContent = quotesToShow[randomIndex] || 'Take a breath, refocus, and continue with intention.';
       motivationalQuoteContainerEl.style.display = 'block';
     }
   }

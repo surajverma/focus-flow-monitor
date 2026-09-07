@@ -130,3 +130,97 @@ button#goBackButton:disabled {
   cursor: not-allowed;
   opacity: 0.7;
 }
+/* A calm, informational pause using the shared card style. */
+:root {
+  --blocked-bg: #f7f8fc;
+  --blocked-heading-color: #212529;
+  --blocked-panel-bg: #f7f8fa;
+  --blocked-border: #e3e7ed;
+  --blocked-text-muted: #596575;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blocked-bg: #1c1c1e;
+    --blocked-card-bg: #2c2c2e;
+    --blocked-heading-color: #f5f5f7;
+    --blocked-panel-bg: #252528;
+    --blocked-border: #414146;
+    --blocked-text-muted: #b5b5bd;
+  }
+}
+.container {
+  max-width: 590px;
+  padding: 36px;
+  border: 1px solid var(--blocked-border);
+  border-radius: 18px;
+  box-sizing: border-box;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+}
+.blocked-brand {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  color: var(--blocked-text-muted);
+  margin-bottom: 24px;
+}
+.icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--blocked-panel-bg);
+  border: 1px solid var(--blocked-border);
+  color: var(--blocked-button-bg);
+  margin: 0 auto 20px;
+  font-size: 2.5rem;
+}
+h1 {
+  font-size: 1.8rem;
+  letter-spacing: -0.04em;
+}
+#sub-heading {
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+}
+.details {
+  background: var(--blocked-panel-bg);
+  border: 1px solid var(--blocked-border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 24px 0;
+  overflow-wrap: anywhere;
+}
+.details p {
+  margin: 8px 0;
+  line-height: 1.7;
+}
+.details strong {
+  color: var(--blocked-text-primary);
+  font-weight: 600;
+}
+.custom-message,
+.motivational-quote {
+  overflow-wrap: anywhere;
+}
+.motivational-quote {
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--blocked-panel-bg);
+}
+#goBackButton {
+  border-radius: 9px;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+}
+@media (max-width: 480px) {
+  body {
+    padding: 16px;
+  }
+  .container {
+    padding: 24px 20px;
+  }
+  .details {
+    padding: 14px;
+  }
+}

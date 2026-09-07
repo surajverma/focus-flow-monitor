@@ -1,208 +1,138 @@
 # Focus Flow Monitor
 
-**Track your time online, gain insights, control distractions, and stay productive with this privacy-focused Firefox extension.**
+Understand your browsing time, control distractions, and build better focus habits with a privacy-focused Firefox extension.
 
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
-[![Mozilla Add-on (Stable)](https://img.shields.io/amo/v/focusflow-monitor?label=Stable&color=007bff)](https://addons.mozilla.org/en-US/firefox/addon/focusflow-monitor/)
-[![Latest Beta Release](https://img.shields.io/github/v/release/SurajVerma/focus-flow-monitor?include_prereleases&label=Beta&color=orange)](https://github.com/SurajVerma/focus-flow-monitor/releases)
-[![GitHub last commit](https://img.shields.io/github/last-commit/SurajVerma/focus-flow-monitor)](https://github.com/SurajVerma/focus-flow-monitor/commits/main)
-[![GitHub issues](https://img.shields.io/github/issues/SurajVerma/focus-flow-monitor)](https://github.com/SurajVerma/focus-flow-monitor/issues)
-[![GitHub Stars](https://img.shields.io/github/stars/SurajVerma/focus-flow-monitor?style=social)](https://github.com/SurajVerma/focus-flow-monitor/stargazers)
+[Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/focusflow-monitor/) · [Beta releases](https://github.com/SurajVerma/focus-flow-monitor/releases) · [Report an issue](https://github.com/SurajVerma/focus-flow-monitor/issues) · [MPL 2.0 license](LICENSE)
 
-Focus Flow Monitor helps you understand your online habits by tracking the time you spend on different websites. Gain insights through categorized statistics, visual charts, and a daily focus score. Set limits, schedule blocks, or permanently block distracting sites to stay productive. All your data stays local, prioritizing your privacy.
+Your tracking history and settings stay in your browser. No account, cloud sync, or analytics service is required.
 
-![Quick View Popup](https://github.com/user-attachments/assets/5b8d9bdc-af18-4fd0-ad0b-c738edf66169)
+![The two-column popup with today's activity and Tomato Clock](docs/screenshots/popup.png)
 
----
+This README describes the current source and beta feature set. The Firefox Add-ons release may not include every feature yet. See the [release notes](https://github.com/SurajVerma/focus-flow-monitor/releases) for changes included in each published version.
 
-**Quick Links**
+## Explore your activity
 
-- [What's New](#whats-new-in-version-0901-beta)
-- [Key Features](#key-features)
-- [Privacy](#privacy)
-- [Installation](#installation)
-- [Beta Version & Data Management](#beta-version--data-management)
-- [Usage Notes](#usage-notes)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-  - [Development Setup](#development-setup)
-- [License](#license)
+- **Dashboard:** View website and category totals, charts, a focus score, and a calendar for exploring individual days.
+- **Insights & Profiles:** Compare this week with the previous week, see productive time and category contributions, track local goals, and manage focus profiles.
+- **Content Control:** Manage categories, assign multiple websites at once, and create blocking rules or time limits.
+- **Productivity:** Set category productivity ratings, configure the Tomato Clock, and customize the blocked page.
+- **Settings:** Configure inactivity and retention, export or restore backups, and selectively delete tracking history.
 
----
+The toolbar popup keeps today's summary, hourly activity, Tomato Clock, and current-site actions close at hand. Light and dark themes follow your system preference.
 
-## What's New in this Version
+## Focus tools
 
-For more details on this and previous updates, check out the [Releases Page](https://github.com/SurajVerma/focus-flow-monitor/releases).
+### Rules and time limits
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
+Block a domain, an exact URL, or a URL prefix. Add exceptions to a rule to allow particular pages within a broader block. Rules can run on selected days and times.
 
-## Key Features
+Set calendar-day, calendar-week, or calendar-month time limits for websites and categories. Weeks start on Monday; these are calendar periods rather than rolling windows. A scheduled block and a separate time-limit rule can be used together.
 
-- **Automatic Time Tracking:** Monitors time spent on websites in your active browser tab. Pauses tracking during inactivity (configurable duration).
-- **Website Categorization:** Automatically assigns websites to predefined or custom categories (e.g., Work, Social Media, Entertainment).
-  - Easily edit existing categories and domain assignments (wildcards supported).
-- **Detailed Statistics:** View comprehensive reports of time spent per website and category for various periods (Today, This Week, This Month, All Time).
-- **Visual Charts:**
-  - Doughnut chart for an intuitive visual breakdown of time by site or category on the statistics page.
-  - Hourly activity bar chart in the popup for a quick daily overview.
-- **Interactive Calendar View:** Explore daily time totals and top websites. Clicking any date updates all statistic displays (Category List, Website List, Focus Score, Chart) for that selected day.
-- **Focus Score:** Rate your website categories (e.g., Productive, Neutral, Distracting) to generate a daily focus score, helping you gauge your productivity at a glance.
-- **Site Blocking & Limiting:**
-  - Set daily time limits for specific websites or entire categories.
-  - Choose calendar-day, calendar-week, or calendar-month limits (weeks start Monday).
-  - Permanently block access to distracting websites.
-  - **Scheduled Blocking** – Define specific days and times for your block rules to be active.
-  - Use domain, exact URL, or URL-prefix matching with explicit exceptions.
-- **Current-site action:** Block or unblock the active website directly from the popup.
-- **Focus profiles:** Create local allow-list profiles, start or stop them manually, and keep the active profile visible in the options page.
-- **Weekly insights:** Review local focus score comparisons, top domains, category totals, daily limit periods, and best focus days.
-- **Customizable Block Page:** Personalize the experience when a site is blocked with custom messages, motivational quotes, and control over displayed information.
-- **Data Management:**
-  - Export your complete tracking history and settings for backup.
-  - Import previously exported data to restore your setup.
-  - **Data Retention Settings:** Set a custom duration for how long tracking data is stored.
-- **Tomato Clock** : Boost your productivity even further with Tomato Clock in Quick View Panel!
-- **Theme Support:** Automatically matches your browser or operating system's light or dark theme.
-- **Privacy Focused:** All your tracking data is stored locally within your browser. No data is ever sent to external servers.
+### Focus profiles
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
+Create an allow-list of websites and categories for a particular activity. Activate the profile manually; its selected days and times control when it applies. Stop it from Insights & Profiles when finished. Firefox internal pages and extension pages remain accessible.
 
-## Privacy
+### Goals and insights
 
-**Privacy-first by design.**
+Set daily or weekly goals for productive time, a category, or an exact website domain, with either a minimum target or a maximum budget. Progress is calculated from retained history and starts a new period with the calendar. Goals do not block websites or send notifications, and they are included in backups.
 
-Focus Flow Monitor does not employ any external tracking or analytics. Your Browse and time data stays local, stored entirely within your browser's storage, and is never transmitted elsewhere. You have full control over your data, including options to export it, clear it, and set data retention periods.
+The focus score is the percentage of tracked time in categories rated **Productive**. Neutral and Distracting time both count toward total time. Adjust your category ratings in Productivity to reflect how you use the web.
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
+### Tomato Clock
 
-## Installation
+Start, pause, reset, or switch between work and break timers from the popup. View session statistics and configure durations in Productivity. Timer notifications are optional and require permission only when enabled.
 
-Get the latest **stable version** from the official Firefox Add-ons page:
+## Privacy and data control
 
-[**Install Focus Flow Monitor (AMO Stable)**](https://addons.mozilla.org/en-US/firefox/addon/focusflow-monitor/)
+Browsing-time records, website assignments, rules, profiles, goals, and settings are stored locally in Firefox. The extension does not upload them or use remote analytics. Firefox may contact Mozilla or GitHub for extension updates; this is separate from tracking-data storage.
 
-For the latest features and updates, you can install the **Beta version** directly from [GitHub Releases](https://github.com/SurajVerma/focus-flow-monitor/releases).
+You can exclude websites from tracking, configure retention, and export or import a backup. Exported files contain your data, so keep them somewhere you trust. Beta and public installations use separate local storage; there is no automatic synchronization between them.
 
-Make sure to pin the extension to your toolbar.
+In **Settings → Data Management**, preview and delete history for a website, an inclusive date range, or both. Rules, category assignments, goals, and Tomato Clock sessions are preserved. Reports, goal progress, and time-limit usage reflect the remaining history.
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
+### Why these permissions?
 
-## Beta Version & Data Management
+| Permission                      | Purpose                                                              |
+| ------------------------------- | -------------------------------------------------------------------- |
+| Tabs and access to website URLs | Identify the active website and apply tracking and blocking rules.   |
+| Web requests and blocking       | Intercept matching navigation and show the extension's blocked page. |
+| Storage                         | Save history and settings on your device.                            |
+| Idle                            | Pause tracking after the configured period of inactivity.            |
+| Alarms                          | Schedule background checks and timer work.                           |
+| Notifications, optional         | Display Tomato Clock notifications when enabled.                     |
 
-Starting with version 0.9.0.1, the version available on GitHub Releases will be tagged as **beta**. Beta versions are typically identified by a **four-part version number** (e.g., `0.9.0.1`), while stable AMO releases use a three-part version number (e.g., `0.9.0`).
+### Known limitations
 
-- **Early Access:** Beta versions receive updates and new features first.
-- **Testing:** While I test beta versions before releasing, they may contain bugs. Your feedback on these is invaluable!
-- **Path to Stable:** These updates, along with any necessary fixes, will later be rolled out to the AMO (Mozilla Add-ons) version as stable releases.
+- URL-path rules depend on navigation events. Sites that change pages without a full navigation may require a reload or normal navigation for a rule to take effect.
+- URL and URL-prefix matching apply to blocking. Time limits operate at website-domain or category level.
+- Custom redirect destinations and yearly limits are not supported.
+- Legacy hourly charts combine time across websites. Deleting one website's history also clears hourly charts for affected days, while preserving other websites' daily totals. The deletion preview explains this before you confirm.
+- Deleting history reduces usage counted toward time limits and goals. These tools support your own focus habits; they are not intended as tamper-proof access controls.
 
-**Important Notes for Beta Users:**
+## Install
 
-- **Separate Installations:** You can install both the AMO (stable) version and the GitHub (beta) version of Focus Flow Monitor simultaneously in Firefox. They will operate as two distinct extensions.
-- **No Shared Data:** The data (tracking history, settings, etc.) is **not shared** between the AMO version and the GitHub beta version. Each installation maintains its own separate local storage.
-- **Switching Between Versions:** If you wish to switch from one version to the other (e.g., from AMO to Beta, or Beta to AMO) and want to keep your data, you **must**:
-  1.  **Export your data** from the version you are currently using (via the Options page > Data Management > Export All Data).
-  2.  **Import that data** into the new version you've installed (via its Options page > Data Management > Import Data from File).
+For the public release, use [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/focusflow-monitor/). For beta testing, download the signed `.xpi` attached to a [GitHub release](https://github.com/SurajVerma/focus-flow-monitor/releases) and open it in Firefox. Pin the extension to the toolbar, then use its gear button to open the options page.
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
-
-## Usage Notes
-
-- **Rule precedence:** Disabled rules do not match; explicit URL modes are more specific than domain modes; a matching exception allows a broader block; among matching blocks, the most specific target wins.
-- **Path matching:** Exact URL and URL-prefix rules use Firefox navigation URLs. Single-page applications that do not expose navigation changes may require a normal page navigation before a path rule can take effect.
-- **Focus profiles:** An active profile allows only its configured domains and categories. Firefox internal pages and extension pages remain available. Stop the profile from the Options page to restore normal browsing.
-- **Backups:** New `.ffm` files include schema version, extension version, and export timestamp. Legacy unversioned backups are accepted, sanitized, and migrated before storage.
-
-- **Tracking Inactivity:** To accurately capture activities like video watching or reading, tracking pauses only when you're inactive (no mouse or keyboard input) for a duration you can configure (default is 30 minutes; options range from 1 minute to 1 hour, or can be disabled).
-- **Accessing Options Page:** You can access detailed statistics, manage categories, set site rules (including schedules and block page customization), and configure all settings via the extension's options page.
-  - Right-click the extension icon in the Firefox toolbar → "Manage Extension" → "Preferences/Options" (⚙️ icon).
-  - Alternatively, click the gear (⚙️) icon in the extension popup.
-- **How to use Tomato Clock:**
-
-  - Click on the Focus Flow Monitor icon in your browser toolbar.
-  - You'll find the "Tomato Clock" section right in the popup.
-  - Click "Start" to begin your first work session!
-  - A Pomodoro cycle consists of 4 work sessions, with a short break after each of the first 3 sessions, followed by a long break at the end. The timer will automatically guide you to the next stage—for example, after completing a work session, it will prompt you to start the short break. However, you're free to manually switch between timers if you prefer.
-  - The remaining time will appear in the toolbar if the extension is pinned: ![image](https://github.com/user-attachments/assets/64ac383c-0406-4b57-b7ed-da80108d9b83). If you want **Focus Flow Monitor** to notify you when the timer ends, the extension will need notification permissions. You can grant this by clicking the bell icon in the popup which will take you to Tomato Clock settings on the Options page.
-
-- **Active Development:** Focus Flow Monitor is actively maintained and improved. Feedback and suggestions are always welcome!
-
-[⬆️ Back to Top](#focus-flow-monitor)
----
+Beta and public builds have different extension IDs and can coexist. To move between them, export your data from the existing installation and import it into the destination installation through Settings → Data Management. Keep the original backup until you have checked the imported data.
 
 ## Screenshots
 
-**Dashboard**
-![dashboard](https://github.com/user-attachments/assets/51a27e18-9b6b-4bea-8202-d221b1030f8a)
+These screenshots use sample activity rather than personal browsing history.
 
-**Content Control**
-![content-control](https://github.com/user-attachments/assets/abcbf7b4-616d-4808-acc2-ddb4dff6b854)
+### Dashboard
 
-**Productivity**
-![productivity](https://github.com/user-attachments/assets/8b6fc986-b892-43b8-b01b-66253ccdf3d9)
+![Dashboard with activity charts and calendar](docs/screenshots/dashboard.png)
 
-**Settings**
-![settings](https://github.com/user-attachments/assets/85631834-fc34-464b-ab7a-23e9a7903b07)
+### Insights & Profiles
 
-**Blocked Page Example:**
-![Blocked Page](https://github.com/user-attachments/assets/01c6ba2b-595c-41a1-943b-15ed34228b61)
+![Weekly insights and local goals](docs/screenshots/insights.png)
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
+### Content Control
 
-## Contributing
+![Website rules and category management](docs/screenshots/content-control.png)
 
-We welcome contributions from the community! Whether it's reporting a bug, suggesting a new feature, or writing code, your help is appreciated.
+### Productivity
 
-- **Report Issues or Suggest Features:** Please use the [GitHub Issues](https://github.com/SurajVerma/focus-flow-monitor/issues) page.
-- **Contribute Code:**
-  1.  Fork the repository.
-  2.  Create a new branch for your feature or bug fix (`git checkout -b feature/your-amazing-feature` or `fix/issue-number`).
-  3.  Make your changes and commit them with clear messages.
-  4.  Push your branch to your fork (`git push origin feature/your-amazing-feature`).
-  5.  Open a Pull Request against the `main` (or relevant development) branch of this repository.
+![Productivity preferences and Tomato Clock settings](docs/screenshots/productivity.png)
 
-### Development Setup
+### Settings
 
-1.  Clone the repository:
-    ```bash
-    git clone [https://github.com/SurajVerma/focus-flow-monitor.git](https://github.com/SurajVerma/focus-flow-monitor.git)
-    cd focus-flow-monitor
-    ```
-2.  Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
-3.  Click on "Load Temporary Add-on...".
-4.  Browse to the directory where you cloned the repository and select the `manifest.json` file (or the specific manifest for the version you are working on, e.g., `manifest-beta.json` if you set one up).
-5.  The extension will now be loaded. To see changes you make to the code, you'll typically need to reload the extension from the `about:debugging` page (using the "Reload" button for the extension).
+![Tracking preferences and local data management](docs/screenshots/settings.png)
 
-### Local Development Commands
+## Develop and contribute
+
+Bug reports and focused pull requests are welcome. Include the extension version, Firefox version, steps to reproduce, and expected behavior. Remove personal browsing data from screenshots and attachments before sharing them.
+
+Install Node.js and npm compatible with the dependencies in `package.json`, then:
 
 ```bash
+git clone https://github.com/SurajVerma/focus-flow-monitor.git
+cd focus-flow-monitor
 npm install
-npm run check          # validation, lint, formatting, and Jest
-npm test -- --watch   # focused development loop
-npm run build:dev     # beta package in dist/beta
-npm run build         # version-selected production package
-npm run build:release # stable production package in dist/release
+npm test
+npm run build:beta
 ```
 
-The background page loads browser-independent modules from `src/core/` before the Firefox Manifest V2 scripts. Tracking data, profiles, exclusions, and backups remain in `browser.storage.local`; the extension has no account, server, analytics, or remote-code path.
+In Firefox, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `dist/beta/manifest.json`. Reload the temporary extension after rebuilding. Temporary installations are for development, not a replacement for signed release packages.
 
-[⬆️ Back to Top](#focus-flow-monitor)
----
+| Command                                 | Purpose                                                                 |
+| --------------------------------------- | ----------------------------------------------------------------------- |
+| `npm test`                              | Run automated tests.                                                    |
+| `npm run test:watch`                    | Run tests while editing.                                                |
+| `npm run validate`                      | Check manifests and required assets.                                    |
+| `npm run lint`                          | Check JavaScript lint rules.                                            |
+| `npm run format:check`                  | Check repository formatting.                                            |
+| `npm run check`                         | Run validation, lint, formatting, and tests in sequence.                |
+| `npm run build:dev`                     | Create a development build; the current four-part version selects beta. |
+| `npm run build` or `npm run build:beta` | Create a production beta build in `dist/beta`.                          |
+| `npm run build:release`                 | Create a production public build in `dist/release`.                     |
+
+Production build scripts clean `dist` first, so building one target removes previous build output. They synchronize manifest versions from `package.json`; they do not publish, sign, or upload a release.
+
+Shared logic lives in `src/core/`, Firefox background scripts in `background/`, and page code in `options/`, `popup/`, and `blocked/`. The extension uses Firefox Manifest V2. Automated tests cover core behavior and selected integration paths; verify changes in live Firefox as well, especially upgrades, navigation blocking, and data restoration.
 
 ## License
 
-This project is licensed under the **Mozilla Public License Version 2.0**.
+[Mozilla Public License 2.0](LICENSE).
 
-You can view the full license text in the [LICENSE](LICENSE) file.
-
-_In simple terms, this means you are free to use, modify, and distribute the software, but if you modify files licensed under MPL 2.0, you must make your modifications available under the same MPL 2.0 license. Please ensure you retain the original copyright and license notices._
-
-[⬆️ Back to Top](#focus-flow-monitor)
----
-
-_Created with ❤️ in India by Suraj_
+Created by Suraj Verma.

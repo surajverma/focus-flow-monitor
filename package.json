@@ -5,8 +5,9 @@
   "private": true,
   "scripts": {
     "update-manifests": "node scripts/update-versions.js",
-    "build": "npm run clean && npm run update-manifests && webpack --mode production --progress",
-    "build:release": "npm run clean && webpack --mode production --env target=release --progress",
+    "build": "npm run build:beta",
+    "build:beta": "npm run clean && npm run update-manifests && webpack --mode production --env target=beta --progress",
+    "build:release": "npm run clean && npm run update-manifests && webpack --mode production --env target=release --progress",
     "build:dev": "npm run update-manifests && webpack --mode development --progress",
     "clean": "node scripts/clean.js",
     "lint": "eslint . --ext .js --ignore-pattern node_modules --ignore-pattern dist",

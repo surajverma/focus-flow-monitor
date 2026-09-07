@@ -27,4 +27,11 @@ describe('tracking interval attribution', () => {
     expect(result.dailyData).toEqual({ '2026-08-21': 120, '2026-08-22': 120 });
     expect(result.hourlyData['2026-08-22']['00']).toBe(120);
   });
+
+  test('does not lose a sub-second interval at a boundary', () => {
+    const start = new Date(2026, 7, 21, 10, 59, 59, 500).getTime();
+    const end = new Date(2026, 7, 21, 11, 0, 0, 500).getTime();
+    const parts = splitIntervalByHour(start, end);
+    expect(parts.reduce((sum, part) => sum + part.seconds, 0)).toBe(1);
+  });
 });

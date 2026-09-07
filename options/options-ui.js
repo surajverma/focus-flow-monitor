@@ -378,6 +378,9 @@ function populateRuleList() {
         detailSpan.textContent = detailContent;
         infoSpan.appendChild(detailSpan);
       }
+      if (rule.exceptions?.length) {
+        infoSpan.appendChild(document.createTextNode(` · ${rule.exceptions.length} exception(s)`));
+      }
 
       const buttonsDiv = document.createElement('div');
       buttonsDiv.className = 'rule-controls';
@@ -466,6 +469,12 @@ function renderCalendar(year, month) {
     }
     dayCell.appendChild(timeSpan);
     dayCell.addEventListener('click', handleCalendarDayClick);
+    dayCell.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleCalendarDayClick(event);
+      }
+    });
     if (dailyTotalSeconds > 0.1) {
       dayCell.style.cursor = 'pointer';
       dayCell.addEventListener('mouseover', handleCalendarMouseOver);

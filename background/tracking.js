@@ -178,10 +178,11 @@ const updateTrackingStateDebounced = debounce(
 
 // This function checks if the currently active tab should be blocked due to a time limit.
 async function checkTimeLimitsAndRedirectIfNeeded() {
-  const { rules, dailyDomainData, dailyCategoryData } = FocusFlowState;
+  const { rules, dailyDomainData, trackingExclusions } = FocusFlowState;
   if (!rules || rules.length === 0) return; // No rules to check
 
-  const limitRules = rules.filter((r) => r.type && r.type.startsWith('limit-'));
+  const now = new Date();
+  const limitRules = rules.filter((rule) => rule?.type?.startsWith('limit-') && isRuleActive(rule, now));
   if (limitRules.length === 0) return; // No limit rules to check
 
   let activeTab;
@@ -196,45 +197,44 @@ async function checkTimeLimitsAndRedirectIfNeeded() {
 
   const domain = getDomain(activeTab.url);
   if (!domain) return;
+  if (Object.hasOwn(trackingExclusions || {}, domain)) return;
 
-  const todayStr = getCurrentDateString();
-  const todaysDomainData = dailyDomainData[todayStr] || {};
-  const todaysCategoryData = dailyCategoryData[todayStr] || {};
-  // Use the getCategoryForDomain from utils.js, which now uses the cache
   const category = getCategoryForDomain(domain);
 
+  const isExcludedDomain = (trackedDomain) => Object.hasOwn(trackingExclusions || {}, trackedDomain);
+  const getDatesForRule = (rule) => {
+    const period = rule.period || 'day';
+    const start = startOfPeriod(now, period);
+    const end = getPeriodEnd(now, period);
+    return getDateKeysBetween(start, end, dailyDomainData);
+  };
+  const sumTrackedDomains = (rule, predicate) =>
+    getDatesForRule(rule).reduce(
+      (total, date) =>
+        total +
+        Object.entries(dailyDomainData[date] || {}).reduce(
+          (dayTotal, [trackedDomain, trackedSeconds]) =>
+            dayTotal + (!isExcludedDomain(trackedDomain) && predicate(trackedDomain) ? Number(trackedSeconds) || 0 : 0),
+          0
+        ),
+      0
+    );
+
   for (const rule of limitRules) {
+    if (ruleHasMatchingException(rule, activeTab.url)) continue;
     let timeSpentToday = 0;
     let ruleMatches = false;
 
-    if (rule.type === 'limit-url' && ruleMatchesUrl(rule, activeTab.url)) {
-      let timeSum = 0;
-      if ((rule.period || 'day') === 'day') {
-        for (const [trackedDomain, trackedSeconds] of Object.entries(todaysDomainData)) {
-          if (domainPatternMatches(trackedDomain, rule.value, true)) timeSum += trackedSeconds;
-        }
-      } else {
-        const start = startOfPeriod(new Date(), rule.period || 'day');
-        const end = getPeriodEnd(new Date(), rule.period || 'day');
-        const dates = getDateKeysBetween(start, end, dailyDomainData);
-        dates.forEach((date) => {
-          Object.entries(dailyDomainData[date] || {}).forEach(([trackedDomain, trackedSeconds]) => {
-            if (domainPatternMatches(trackedDomain, rule.value, true)) timeSum += trackedSeconds;
-          });
-        });
-      }
-      timeSpentToday = timeSum;
+    if ((rule.type === 'limit-url' || rule.type === 'limit-domain') && ruleMatchesUrl(rule, activeTab.url)) {
+      const mode = getRuleMatchMode(rule);
+      if (!['domain', 'domain-subdomains'].includes(mode)) continue;
+      const targetDomain = normalizeRuleTarget(rule.value, mode);
+      timeSpentToday = sumTrackedDomains(rule, (trackedDomain) =>
+        domainPatternMatches(trackedDomain, targetDomain, mode === 'domain-subdomains')
+      );
       ruleMatches = true;
     } else if (rule.type === 'limit-category' && category === rule.value) {
-      if ((rule.period || 'day') === 'day') {
-        timeSpentToday = todaysCategoryData[rule.value] || 0;
-      } else {
-        const start = startOfPeriod(new Date(), rule.period || 'day');
-        const end = getPeriodEnd(new Date(), rule.period || 'day');
-        getDateKeysBetween(start, end, dailyCategoryData).forEach((date) => {
-          timeSpentToday += Number(dailyCategoryData[date]?.[rule.value]) || 0;
-        });
-      }
+      timeSpentToday = sumTrackedDomains(rule, (trackedDomain) => getCategoryForDomain(trackedDomain) === rule.value);
       ruleMatches = true;
     }
 
@@ -250,18 +250,18 @@ async function checkTimeLimitsAndRedirectIfNeeded() {
       });
       const blockContext =
         typeof createBlockContext === 'function'
-          ? createBlockContext(domain, 'limit', {
+          ? createBlockContext(activeTab.url, 'limit', {
               ruleId: rule.id,
               ruleType: rule.type,
               limitType: rule.period || 'day',
               limitSeconds: rule.limitSeconds,
               usedSeconds: timeSpentToday,
-              nextAvailable: getPeriodEnd(new Date(), rule.period || 'day').getTime(),
+              nextAvailable: getPeriodEnd(now, rule.period || 'day').getTime(),
             })
           : null;
       if (blockContext && typeof storeBlockContext === 'function') {
         params.set('contextId', blockContext.id);
-        storeBlockContext(blockContext).catch(() => {});
+        await storeBlockContext(blockContext).catch(() => {});
       }
       try {
         // Prevent redirection loop if already on the block page

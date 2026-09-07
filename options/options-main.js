@@ -30,8 +30,12 @@ function setupTabs() {
   tabLinks.forEach((link) => {
     link.addEventListener('click', () => {
       const targetTab = link.dataset.tab;
+      if (targetTab === 'insightsTab' && typeof loadFeatureData === 'function') {
+        loadFeatureData().catch((error) => console.error('Error refreshing insights:', error));
+      }
 
       tabLinks.forEach((l) => l.classList.remove('active'));
+      tabLinks.forEach((l) => l.setAttribute('aria-selected', String(l === link)));
       link.classList.add('active');
 
       tabContents.forEach((content) => {
@@ -58,6 +62,15 @@ function setupTabs() {
           console.warn('Error saving active tab state:', err);
         });
       }
+    });
+    link.addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+      event.preventDefault();
+      const links = Array.from(tabLinks);
+      const offset = event.key === 'ArrowRight' ? 1 : -1;
+      const next = links[(links.indexOf(link) + offset + links.length) % links.length];
+      next.focus();
+      next.click();
     });
   });
 }
@@ -213,6 +226,7 @@ async function loadAllData() {
     STORAGE_KEY_POMODORO_SETTINGS,
     STORAGE_KEY_POMODORO_STATS_DAILY,
     STORAGE_KEY_POMODORO_STATS_ALL_TIME,
+    'trackingExclusions',
   ];
 
   try {
@@ -233,6 +247,24 @@ async function loadAllData() {
 
     AppState.categoryAssignments = result.categoryAssignments || {};
     AppState.rules = result.rules || [];
+    AppState.trackingExclusions = result.trackingExclusions || {};
+    if (Object.keys(AppState.trackingExclusions).length) {
+      AppState.trackedData = Object.fromEntries(
+        Object.entries(AppState.trackedData).filter(([domain]) => !AppState.trackingExclusions[domain])
+      );
+      AppState.dailyDomainData = Object.fromEntries(
+        Object.entries(AppState.dailyDomainData).map(([date, domains]) => [
+          date,
+          Object.fromEntries(Object.entries(domains || {}).filter(([domain]) => !AppState.trackingExclusions[domain])),
+        ])
+      );
+      AppState.dailyCategoryData = categorizeDailyData(AppState.dailyDomainData, AppState.categoryAssignments, 'Other');
+      AppState.categoryTimeData = Object.entries(AppState.trackedData).reduce((totals, [domain, seconds]) => {
+        const category = resolveCategoryForDomain(domain, AppState.categoryAssignments, 'Other');
+        totals[category] = (totals[category] || 0) + (Number(seconds) || 0);
+        return totals;
+      }, {});
+    }
 
     const savedIdleThreshold = result[STORAGE_KEY_IDLE_THRESHOLD];
     if (UIElements.idleThresholdSelect) {

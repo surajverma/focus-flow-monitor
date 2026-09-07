@@ -16,4 +16,10 @@ describe('backup validation and sanitization', () => {
   test('accepts legacy backups without a version marker for migration', () => {
     expect(validateBackup({ categories: ['Other'] }).valid).toBe(true);
   });
+
+  test('preserves null active profiles and the forever retention value', () => {
+    const sanitized = sanitizeImportedData({ activeFocusProfile: null, dataRetentionPeriodDays: -1 });
+    expect(sanitized.activeFocusProfile).toBeNull();
+    expect(sanitized.dataRetentionPeriodDays).toBe(-1);
+  });
 });

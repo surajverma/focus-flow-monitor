@@ -18,7 +18,7 @@ function validateBackup(backup) {
   }
 
   // Check for required fields
-  if (backup.version === undefined || backup.version === null) {
+  if (backup.version === undefined && backup.schemaVersion === undefined) {
     warnings.push('Backup has no schema version and will use legacy migration defaults');
   }
 
@@ -56,9 +56,6 @@ function validateBackup(backup) {
       errors.push('rules must be an array');
     } else {
       backup.rules.forEach((rule, idx) => {
-        if (!rule.id) {
-          errors.push(`rules[${idx}]: missing id`);
-        }
         if (!rule.type) {
           errors.push(`rules[${idx}]: missing type`);
         }
@@ -105,6 +102,8 @@ function sanitizeImportedData(data) {
     'categoryProductivityRatings',
     'pomodoroDailyStats',
     'pomodoroAllTimeStats',
+    'pomodoroStatsDaily',
+    'pomodoroStatsAllTime',
     'pomodoroUserSettings',
     'blockPage_customHeading',
     'blockPage_customMessage',
@@ -120,8 +119,10 @@ function sanitizeImportedData(data) {
     'dataRetentionPeriodDays',
     'schemaVersion',
     'profiles',
+    'localGoals',
     'activeFocusProfile',
     'trackingExclusions',
+    'lastBackupAt',
   ];
 
   Object.entries(data).forEach(([key, value]) => {
@@ -140,7 +141,7 @@ function sanitizeImportedData(data) {
         }
       });
     } else if (key === 'rules' && Array.isArray(value)) {
-      sanitized[key] = value.filter((rule) => typeof rule === 'object' && rule.id && rule.type);
+      sanitized[key] = value.filter((rule) => rule && typeof rule === 'object' && typeof rule.type === 'string');
     } else if (key === 'trackedData' && typeof value === 'object' && !Array.isArray(value)) {
       sanitized[key] = {};
       Object.entries(value).forEach(([k, v]) => {
@@ -149,7 +150,7 @@ function sanitizeImportedData(data) {
         }
       });
     } else if ((key === 'idleThresholdSeconds' || key === 'dataRetentionPeriodDays') && typeof value === 'number') {
-      sanitized[key] = Math.max(1, Math.floor(value));
+      sanitized[key] = key === 'dataRetentionPeriodDays' && value === -1 ? -1 : Math.max(1, Math.floor(value));
     } else if (
       [
         'dailyDomainData',
@@ -159,17 +160,26 @@ function sanitizeImportedData(data) {
         'categoryProductivityRatings',
         'pomodoroDailyStats',
         'pomodoroAllTimeStats',
+        'pomodoroStatsDaily',
+        'pomodoroStatsAllTime',
         'pomodoroUserSettings',
       ].includes(key)
     ) {
       if (value && typeof value === 'object' && !Array.isArray(value)) sanitized[key] = value;
+    } else if (key === 'localGoals') {
+      // Browser pages load goals.js first; CommonJS tests use the same validator.
+      const normalizeGoal =
+        typeof normalizeLocalGoal === 'function' ? normalizeLocalGoal : module.require('./goals').normalizeLocalGoal;
+      sanitized[key] = Array.isArray(value) ? value.map(normalizeGoal).filter(Boolean) : [];
     } else if (['profiles', 'activeFocusProfile', 'trackingExclusions'].includes(key)) {
       if (key === 'profiles' && Array.isArray(value))
         sanitized[key] = value.filter((profile) => profile && typeof profile === 'object');
-      if (key === 'activeFocusProfile' && value && typeof value === 'object' && !Array.isArray(value))
-        sanitized[key] = value;
+      if (key === 'activeFocusProfile')
+        sanitized[key] = value && typeof value === 'object' && !Array.isArray(value) ? value : null;
       if (key === 'trackingExclusions' && value && typeof value === 'object' && !Array.isArray(value))
         sanitized[key] = value;
+    } else if (value === null && key === 'lastBackupAt') {
+      sanitized[key] = null;
     } else if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
       sanitized[key] = value;
     } else if (key === 'blockPage_userQuotes' && Array.isArray(value)) {

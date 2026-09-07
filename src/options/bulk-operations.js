@@ -1,3 +1,4 @@
+/* global require */
 /**
  * Bulk category assignment operations
  * Handles bulk assignment of multiple domains to categories
@@ -11,7 +12,12 @@
  */
 async function assignDomainsToCategory(domains, category) {
   try {
-    if (!domains || domains.length === 0) {
+    const normalize =
+      typeof module !== 'undefined' && module.exports
+        ? require('../core/domain-matcher').normalizeDomain
+        : normalizeDomain;
+    const validDomains = Array.from(new Set((domains || []).map((domain) => normalize(domain)).filter(Boolean)));
+    if (validDomains.length === 0) {
       throw new Error('No domains provided');
     }
 
@@ -31,7 +37,7 @@ async function assignDomainsToCategory(domains, category) {
 
     // Apply assignments
     const updatedAssignments = { ...assignments };
-    domains.forEach((domain) => {
+    validDomains.forEach((domain) => {
       if (domain) {
         updatedAssignments[domain] = category;
       }
@@ -42,14 +48,12 @@ async function assignDomainsToCategory(domains, category) {
 
     // Notify background to update cache
     if (browser.runtime && browser.runtime.sendMessage) {
-      browser.runtime.sendMessage({ action: 'updateRuleCache' }).catch(() => {
-        // Ignore if background not ready
-      });
+      await browser.runtime.sendMessage({ action: 'categoriesUpdated' });
     }
 
     return {
       success: true,
-      count: domains.length,
+      count: validDomains.length,
       category,
     };
   } catch (error) {
@@ -95,9 +99,7 @@ async function moveDomainsToCategory(domains, fromCategory, toCategory) {
 
     // Notify background
     if (browser.runtime && browser.runtime.sendMessage) {
-      browser.runtime.sendMessage({ action: 'updateRuleCache' }).catch(() => {
-        // Ignore if background not ready
-      });
+      await browser.runtime.sendMessage({ action: 'categoriesUpdated' });
     }
 
     return {
@@ -141,9 +143,7 @@ async function removeAssignments(domains) {
 
     // Notify background
     if (browser.runtime && browser.runtime.sendMessage) {
-      browser.runtime.sendMessage({ action: 'updateRuleCache' }).catch(() => {
-        // Ignore if background not ready
-      });
+      await browser.runtime.sendMessage({ action: 'categoriesUpdated' });
     }
 
     return {
@@ -172,8 +172,6 @@ async function getUncategorizedDomains(dailyDomainData, assignments) {
     }
 
     const uncategorized = {};
-    const otherCategory = 'Other';
-
     // Aggregate usage by domain
     Object.values(dailyDomainData).forEach((dayData) => {
       Object.entries(dayData).forEach(([domain, seconds]) => {

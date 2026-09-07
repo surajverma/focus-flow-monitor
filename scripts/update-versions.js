@@ -83,6 +83,8 @@ function checkUpdatesJson(currentVersion) {
 if (isBetaVersion) {
   console.log(`Updating for BETA version (${version}).`);
   updateManifestFile(manifestBetaPath, version);
+  const releaseVersion = versionParts.slice(0, 3).join('.');
+  updateManifestFile(manifestReleasePath, releaseVersion);
   checkUpdatesJson(version); // Check updates.json for beta versions
 } else if (isReleaseVersion) {
   console.log(`Updating for RELEASE version (${version}).`);
