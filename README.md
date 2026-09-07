@@ -1,4 +1,10 @@
 # Focus Flow Monitor
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+[![Mozilla Add-on (Stable)](https://img.shields.io/amo/v/focusflow-monitor?label=Stable&color=007bff)](https://addons.mozilla.org/en-US/firefox/addon/focusflow-monitor/)
+[![Latest Beta Release](https://img.shields.io/github/v/release/SurajVerma/focus-flow-monitor?include_prereleases&label=Beta&color=orange)](https://github.com/SurajVerma/focus-flow-monitor/releases)
+[![GitHub last commit](https://img.shields.io/github/last-commit/SurajVerma/focus-flow-monitor)](https://github.com/SurajVerma/focus-flow-monitor/commits/main)
+[![GitHub issues](https://img.shields.io/github/issues/SurajVerma/focus-flow-monitor)](https://github.com/SurajVerma/focus-flow-monitor/issues)
+[![GitHub Stars](https://img.shields.io/github/stars/SurajVerma/focus-flow-monitor?style=social)](https://github.com/SurajVerma/focus-flow-monitor/stargazers)
 
 Understand your browsing time, control distractions, and build better focus habits with a privacy-focused Firefox extension.
 
