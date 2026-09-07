@@ -135,4 +135,4 @@ Shared logic lives in `src/core/`, Firefox background scripts in `background/`, 
 
 [Mozilla Public License 2.0](LICENSE).
 
-Created by Suraj Verma.
+If you find Focus Flow Monitor useful, you can [buy me a coffee ☕](https://ko-fi.com/skv).

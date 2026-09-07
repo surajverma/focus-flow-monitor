@@ -1,6 +1,6 @@
 {
   "name": "focus-flow-monitor",
-  "version": "0.9.4.0",
+  "version": "0.9.5.0",
   "description": "Master your online habits! Track time, visualize usage, block distractions, set limits, and enhance focus with the built-in Pomodoro (Tomato) timer.",
   "private": true,
   "scripts": {
