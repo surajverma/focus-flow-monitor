@@ -38,9 +38,13 @@ async function loadData({ clearTrackingState = true } = {}) {
       'profiles',
       'activeFocusProfile',
       'trackingExclusions',
+      'categoryProductivityRatings',
     ]);
     const migrated = typeof migrateData === 'function' ? migrateData(result) : result;
     if (typeof validateSchema === 'function') validateSchema(migrated);
+    if (JSON.stringify(result.categoryProductivityRatings) !== JSON.stringify(migrated.categoryProductivityRatings)) {
+      await browser.storage.local.set({ categoryProductivityRatings: migrated.categoryProductivityRatings });
+    }
     console.log('[Storage] Config/History/Stats Data loaded from storage.');
 
     let needsSave = false; // Flag to check if initial save of defaults is needed

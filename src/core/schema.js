@@ -44,15 +44,15 @@ function getDefaultSchema() {
 
     // Productivity ratings for categories
     categoryProductivityRatings: {
-      'Work/Productivity': 'productive',
-      'Social Media': 'distracting',
-      'News & Info': 'neutral',
-      Entertainment: 'distracting',
-      Shopping: 'distracting',
-      'Reference & Learning': 'productive',
-      Technology: 'neutral',
-      Finance: 'productive',
-      Other: 'neutral',
+      'Work/Productivity': 1,
+      'Social Media': -1,
+      'News & Info': 0,
+      Entertainment: -1,
+      Shopping: -1,
+      'Reference & Learning': 1,
+      Technology: 0,
+      Finance: 0,
+      Other: 0,
     },
 
     // Pomodoro data
@@ -89,6 +89,16 @@ function migrateData(oldData) {
   // Set current version
   data.schemaVersion = CURRENT_SCHEMA_VERSION;
   if (!Array.isArray(data.localGoals)) data.localGoals = [];
+  // Repair ratings written by earlier schema defaults without changing user choices.
+  const legacyRatings = { productive: 1, neutral: 0, distracting: -1 };
+  data.categoryProductivityRatings = isPlainObject(data.categoryProductivityRatings)
+    ? Object.fromEntries(
+        Object.entries(data.categoryProductivityRatings).map(([category, rating]) => [
+          category,
+          Object.hasOwn(legacyRatings, rating) ? legacyRatings[rating] : rating,
+        ])
+      )
+    : getDefaultSchema().categoryProductivityRatings;
 
   return data;
 }

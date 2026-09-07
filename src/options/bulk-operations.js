@@ -1,3 +1,4 @@
+/* global require */
 /**
  * Bulk category assignment operations
  * Handles bulk assignment of multiple domains to categories
@@ -11,7 +12,11 @@
  */
 async function assignDomainsToCategory(domains, category) {
   try {
-    const validDomains = Array.from(new Set((domains || []).map((domain) => normalizeDomain(domain)).filter(Boolean)));
+    const normalize =
+      typeof module !== 'undefined' && module.exports
+        ? require('../core/domain-matcher').normalizeDomain
+        : normalizeDomain;
+    const validDomains = Array.from(new Set((domains || []).map((domain) => normalize(domain)).filter(Boolean)));
     if (validDomains.length === 0) {
       throw new Error('No domains provided');
     }

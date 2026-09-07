@@ -26,3 +26,26 @@ describe('storage schema migrations', () => {
     expect(data.dailyDomainData).toEqual({});
   });
 });
+
+const fs = require('fs');
+const vm = require('vm');
+const { getDefaultSchema } = require('./schema');
+
+test('schema defaults agree with dashboard ratings and produce a nonzero focus score', () => {
+  const context = vm.createContext({});
+  vm.runInContext(fs.readFileSync(require.resolve('../../options/options-utils'), 'utf8'), context);
+  const ratings = getDefaultSchema().categoryProductivityRatings;
+  expect(ratings).toEqual(vm.runInContext('defaultCategoryProductivityRatings', context));
+  expect(context.calculateFocusScore({ 'Work/Productivity': 180, Other: 60 }, ratings).score).toBe(75);
+});
+
+test('repairs legacy ratings even at the current schema version and preserves overrides', () => {
+  const original = {
+    schemaVersion: CURRENT_SCHEMA_VERSION,
+    categoryProductivityRatings: { Work: 'productive', Rest: 'neutral', Social: 'distracting', Finance: 1, Custom: -1 },
+  };
+  const migrated = migrateData(original);
+  expect(migrated.categoryProductivityRatings).toEqual({ Work: 1, Rest: 0, Social: -1, Finance: 1, Custom: -1 });
+  expect(original.categoryProductivityRatings.Work).toBe('productive');
+  expect(migrateData(migrated)).toEqual(migrated);
+});
