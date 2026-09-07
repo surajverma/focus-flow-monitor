@@ -927,7 +927,7 @@ body {
   }
 }
 .popup-container {
-  padding: 16px;
+  padding: 12px;
 }
 .popup-header {
   border: 0;
@@ -948,7 +948,7 @@ body {
   border: 1px solid var(--popup-header-border);
   border-radius: 14px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  padding: 16px;
+  padding: 12px;
 }
 .popup-dashboard .summary-section {
   border-top: 3px solid var(--pomodoro-btn-primary-bg);
@@ -971,7 +971,7 @@ body {
 .pomodoro-timer-display {
   background: var(--popup-bg);
   border-radius: 10px;
-  padding: 10px 16px;
+  padding: 6px 12px;
 }
 #pomodoro-time {
   font-variant-numeric: tabular-nums;
