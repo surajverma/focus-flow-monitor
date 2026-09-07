@@ -124,9 +124,13 @@ function getNextPeriodBoundary(period) {
   const now = Date.now();
 
   if (period === 'day') {
-    return getStartOfDay(now) + SECONDS_PER_DAY * MILLISECONDS_PER_SECOND;
+    const next = new Date(getStartOfDay(now));
+    next.setDate(next.getDate() + 1);
+    return next.getTime();
   } else if (period === 'week') {
-    return getStartOfWeek(now) + 7 * SECONDS_PER_DAY * MILLISECONDS_PER_SECOND;
+    const next = new Date(getStartOfWeek(now));
+    next.setDate(next.getDate() + 7);
+    return next.getTime();
   } else if (period === 'month') {
     const start = getStartOfMonth(now);
     const next = new Date(start);

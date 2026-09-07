@@ -12,11 +12,42 @@ async function processStateUpdateQueue() {
   isProcessingQueue = true;
   const eventContext = eventQueue.shift(); // Get the oldest event
 
-  await updateTrackingStateImplementation(eventContext); // from tracking.js
+  try {
+    if (typeof eventContext === 'function') await eventContext();
+    else await updateTrackingStateImplementation(eventContext);
+  } finally {
+    isProcessingQueue = false;
+    processStateUpdateQueue();
+  }
+}
 
-  isProcessingQueue = false;
-  // Process the next item in the queue if any exist
-  processStateUpdateQueue();
+function queueHistoryOperation(selection, execute = false) {
+  return new Promise((resolve, reject) => {
+    eventQueue.push(async () => {
+      try {
+        await updateTrackingStateImplementation('history-preview');
+        const plan = planHistoryDeletion(FocusFlowState, selection);
+        if (execute) {
+          clearTimeout(FocusFlowState.saveTimeoutId);
+          // Use the same storage queue as tracking saves, preventing older writes from restoring deleted data.
+          const before = Object.fromEntries(Object.keys(plan.updates).map((key) => [key, FocusFlowState[key]]));
+          Object.assign(FocusFlowState, plan.updates);
+          try {
+            if (backgroundStorageManager) await backgroundStorageManager.write(plan.updates);
+            else await browser.storage.local.set(plan.updates);
+          } catch (error) {
+            Object.assign(FocusFlowState, before);
+            throw error;
+          }
+        }
+        const { updates: _updates, ...summary } = plan;
+        resolve({ success: true, ...summary });
+      } catch (error) {
+        reject(error);
+      }
+    });
+    processStateUpdateQueue();
+  });
 }
 
 // New function to update the in-memory cache for blocking rules
@@ -24,6 +55,7 @@ async function updateRuleAndAssignmentCache() {
   try {
     const result = await browser.storage.local.get([
       'rules',
+      'categories',
       'categoryAssignments',
       'profiles',
       'activeFocusProfile',
@@ -33,9 +65,26 @@ async function updateRuleAndAssignmentCache() {
     // Merge persisted rules with ephemeral Pomodoro rules (if any)
     const ephemeral = Array.isArray(FocusFlowState.ephemeralPomodoroRules) ? FocusFlowState.ephemeralPomodoroRules : [];
     FocusFlowState.activeBlockingRules = [...persistedRules, ...ephemeral];
+    FocusFlowState.rules = persistedRules;
     FocusFlowState.activeCategoryAssignments = result.categoryAssignments || {};
     // Keep the base assignments in sync for getCategoryForDomain utility
     FocusFlowState.categoryAssignments = result.categoryAssignments || {};
+    FocusFlowState.categories = result.categories || ['Other'];
+    // Rebuild from live domain totals so unsaved tracking time survives category edits.
+    FocusFlowState.categoryTimeData = {};
+    for (const [domain, seconds] of Object.entries(FocusFlowState.trackedData || {})) {
+      const category = getCategoryForDomain(domain);
+      FocusFlowState.categoryTimeData[category] = (FocusFlowState.categoryTimeData[category] || 0) + seconds;
+    }
+    FocusFlowState.dailyCategoryData = {};
+    for (const [date, domains] of Object.entries(FocusFlowState.dailyDomainData || {})) {
+      const totals = {};
+      for (const [domain, seconds] of Object.entries(domains)) {
+        const category = getCategoryForDomain(domain);
+        totals[category] = (totals[category] || 0) + seconds;
+      }
+      FocusFlowState.dailyCategoryData[date] = totals;
+    }
     FocusFlowState.profiles = Array.isArray(result.profiles) ? result.profiles : [];
     FocusFlowState.activeFocusProfile = result.activeFocusProfile || null;
     FocusFlowState.trackingExclusions = result.trackingExclusions || {};
@@ -253,7 +302,12 @@ async function loadPomodoroStateAndSettings() {
           ? Math.min(persisted.remainingTime, currentPhaseDuration) // Ensure remaining time isn't > new duration
           : currentPhaseDuration;
       pomodoroState.workSessionsCompleted = persisted.workSessionsCompleted || 0;
-      pomodoroState.deadlineAt = Number(persisted.deadlineAt) || null;
+      pomodoroState.deadlineAt = Number(persisted.deadlineAt || persisted.deadline || persisted.endTime) || null;
+      if (persisted.timerState === 'running' && !pomodoroState.deadlineAt && persisted.lastUpdatedAt) {
+        const elapsedSeconds = Math.max(0, Math.floor((Date.now() - Number(persisted.lastUpdatedAt)) / 1000));
+        pomodoroState.remainingTime = Math.max(0, pomodoroState.remainingTime - elapsedSeconds);
+        pomodoroState.deadlineAt = Date.now() + pomodoroState.remainingTime * 1000;
+      }
       pomodoroState.timerState = persisted.timerState || 'stopped';
       if (pomodoroState.timerState === 'running' && pomodoroState.deadlineAt) {
         pomodoroState.remainingTime = Math.max(0, Math.ceil((pomodoroState.deadlineAt - Date.now()) / 1000));
@@ -634,19 +688,28 @@ browser.alarms.onAlarm.addListener(async (alarm) => {
 
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   (async () => {
+    if (request.action === 'previewHistoryDeletion' || request.action === 'deleteSelectedHistory') {
+      try {
+        sendResponse(await queueHistoryOperation(request.selection, request.action === 'deleteSelectedHistory'));
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+      return;
+    }
     if (
       request.action === 'categoriesUpdated' ||
       request.action === 'rulesUpdated' ||
       request.action === 'profilesUpdated' ||
-      request.action === 'importedData'
+      request.action === 'trackingExclusionsUpdated'
     ) {
-      console.log(`[System Background] Reloading config data due to ${request.action} message.`);
-      await loadData();
-      if (request.action === 'importedData') {
-        await loadPomodoroStateAndSettings();
-      }
-      await updateRuleAndAssignmentCache(); // Update cache on any rule/category change
-      sendResponse({ success: true, message: 'Config data and cache reloaded.' });
+      console.log(`[System Background] Refreshing config cache due to ${request.action} message.`);
+      await updateRuleAndAssignmentCache();
+      sendResponse({ success: true, message: 'Configuration cache refreshed.' });
+    } else if (request.action === 'importedData') {
+      await loadData({ clearTrackingState: false });
+      await loadPomodoroStateAndSettings();
+      await updateRuleAndAssignmentCache();
+      sendResponse({ success: true, message: 'Imported data loaded.' });
     }
     // --- The rest of the Pomodoro message handlers remain the same ---
     else if (request.action === 'pomodoroSettingsChanged') {

@@ -44,26 +44,61 @@ function sumObjectValues(value) {
   return Object.values(value || {}).reduce((total, seconds) => total + (Number(seconds) || 0), 0);
 }
 
-function aggregatePeriodData(dailyDomainData, dailyCategoryData, start, end) {
+function resolveInsightCategory(domain, assignments) {
+  if (!assignments) return null;
+  if (assignments[domain]) return assignments[domain];
+  const parts = domain.split('.');
+  for (let index = 1; index < parts.length; index += 1) {
+    const category = assignments[`*.${parts.slice(index).join('.')}`];
+    if (category) return category;
+  }
+  return 'Other';
+}
+
+function aggregatePeriodData(dailyDomainData, dailyCategoryData, start, end, exclusions = {}, assignments = null) {
   const domains = {};
   const categories = {};
   const keys = getDateKeysBetween(start, end, dailyDomainData);
   keys.forEach((date) => {
     Object.entries(dailyDomainData[date] || {}).forEach(([domain, seconds]) => {
+      if (exclusions[domain]) return;
       domains[domain] = (domains[domain] || 0) + (Number(seconds) || 0);
+      const category = resolveInsightCategory(domain, assignments);
+      if (category) categories[category] = (categories[category] || 0) + (Number(seconds) || 0);
     });
-    Object.entries(dailyCategoryData?.[date] || {}).forEach(([category, seconds]) => {
-      categories[category] = (categories[category] || 0) + (Number(seconds) || 0);
-    });
+    if (!assignments) {
+      Object.entries(dailyCategoryData?.[date] || {}).forEach(([category, seconds]) => {
+        categories[category] = (categories[category] || 0) + (Number(seconds) || 0);
+      });
+    }
   });
   return { dates: keys, domains, categories, totalSeconds: sumObjectValues(domains) };
+}
+
+function getInsightRating(category, productivityRatings) {
+  const defaults = {
+    'Work/Productivity': 1,
+    'Reference & Learning': 1,
+    Shopping: -1,
+    'Social Media': -1,
+    Entertainment: -1,
+  };
+  const rating = productivityRatings?.[category] ?? defaults[category] ?? 0;
+  if (rating === 'productive' || rating === 1) return 1;
+  if (rating === 'distracting' || rating === -1) return -1;
+  return 0;
+}
+
+function insightDateKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function calculateInsightFocusScore(categories, productivityRatings) {
   const total = sumObjectValues(categories);
   if (!total) return 0;
   const productive = Object.entries(categories).reduce(
-    (sum, [category, seconds]) => sum + (productivityRatings?.[category] === 'productive' ? Number(seconds) || 0 : 0),
+    (sum, [category, seconds]) =>
+      sum + (getInsightRating(category, productivityRatings) === 1 ? Number(seconds) || 0 : 0),
     0
   );
   return Math.round((productive / total) * 100);
@@ -75,29 +110,65 @@ function buildWeeklySummary(data, referenceDate = new Date()) {
   const previousEnd = currentStart;
   const previousStart = new Date(currentStart);
   previousStart.setDate(previousStart.getDate() - 7);
-  const current = aggregatePeriodData(data.dailyDomainData, data.dailyCategoryData, currentStart, currentEnd);
-  const previous = aggregatePeriodData(data.dailyDomainData, data.dailyCategoryData, previousStart, previousEnd);
+  const current = aggregatePeriodData(
+    data.dailyDomainData,
+    data.dailyCategoryData,
+    currentStart,
+    currentEnd,
+    data.trackingExclusions,
+    data.categoryAssignments
+  );
+  const previous = aggregatePeriodData(
+    data.dailyDomainData,
+    data.dailyCategoryData,
+    previousStart,
+    previousEnd,
+    data.trackingExclusions,
+    data.categoryAssignments
+  );
   const currentScore = calculateInsightFocusScore(current.categories, data.productivityRatings);
   const previousScore = calculateInsightFocusScore(previous.categories, data.productivityRatings);
   const domainChanges = Object.keys({ ...current.domains, ...previous.domains })
     .map((domain) => ({ domain, change: (current.domains[domain] || 0) - (previous.domains[domain] || 0) }))
     .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
-  const dailyTotals = current.dates.map((date) => ({ date, seconds: sumObjectValues(data.dailyDomainData[date]) }));
-  const bestDay = dailyTotals.sort((a, b) => b.seconds - a.seconds)[0] || null;
+  const dailyTotals = current.dates
+    .map((date) => {
+      const start = new Date(`${date}T00:00:00`);
+      const day = aggregatePeriodData(
+        data.dailyDomainData,
+        data.dailyCategoryData,
+        start,
+        getPeriodEnd(start, 'day'),
+        data.trackingExclusions,
+        data.categoryAssignments
+      );
+      return {
+        date,
+        seconds: day.totalSeconds,
+        focusScore: calculateInsightFocusScore(day.categories, data.productivityRatings),
+      };
+    })
+    .filter((day) => day.seconds > 0);
+  const bestDay = dailyTotals.sort((a, b) => b.focusScore - a.focusScore || b.seconds - a.seconds)[0] || null;
   return {
-    startDate: currentStart.toISOString().slice(0, 10),
-    endDate: new Date(currentEnd.getTime() - 1).toISOString().slice(0, 10),
+    startDate: insightDateKey(currentStart),
+    endDate: insightDateKey(new Date(currentEnd.getTime() - 1)),
     totalSeconds: current.totalSeconds,
+    previousTotalSeconds: previous.totalSeconds,
+    previousProductiveSeconds: Object.entries(previous.categories).reduce(
+      (sum, [category, seconds]) => sum + (getInsightRating(category, data.productivityRatings) === 1 ? seconds : 0),
+      0
+    ),
     productiveSeconds: Object.entries(current.categories).reduce(
-      (sum, [category, seconds]) => sum + (data.productivityRatings?.[category] === 'productive' ? seconds : 0),
+      (sum, [category, seconds]) => sum + (getInsightRating(category, data.productivityRatings) === 1 ? seconds : 0),
       0
     ),
     neutralSeconds: Object.entries(current.categories).reduce(
-      (sum, [category, seconds]) => sum + (data.productivityRatings?.[category] === 'neutral' ? seconds : 0),
+      (sum, [category, seconds]) => sum + (getInsightRating(category, data.productivityRatings) === 0 ? seconds : 0),
       0
     ),
     distractingSeconds: Object.entries(current.categories).reduce(
-      (sum, [category, seconds]) => sum + (data.productivityRatings?.[category] === 'distracting' ? seconds : 0),
+      (sum, [category, seconds]) => sum + (getInsightRating(category, data.productivityRatings) === -1 ? seconds : 0),
       0
     ),
     focusScore: currentScore,
@@ -109,11 +180,15 @@ function buildWeeklySummary(data, referenceDate = new Date()) {
       .map(([domain, seconds]) => ({ domain, seconds })),
     topCategories: Object.entries(current.categories)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([category, seconds]) => ({ category, seconds })),
+      .map(([category, seconds]) => ({
+        category,
+        seconds,
+        rating: getInsightRating(category, data.productivityRatings),
+        share: current.totalSeconds ? Math.round((seconds / current.totalSeconds) * 100) : 0,
+      })),
     largestChanges: domainChanges.slice(0, 5),
     bestDay,
-    datesTracked: current.dates.length,
+    datesTracked: dailyTotals.length,
   };
 }
 

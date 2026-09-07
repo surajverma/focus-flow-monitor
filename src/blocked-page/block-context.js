@@ -5,6 +5,7 @@
 
 const BLOCK_CONTEXT_STORAGE_KEY = 'blockContext';
 const CONTEXT_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+let blockContextWriteQueue = Promise.resolve();
 
 /**
  * Create a block context object
@@ -49,29 +50,15 @@ function generateContextId() {
  * @returns {Promise} Resolves when stored
  */
 async function storeBlockContext(context) {
-  try {
+  const write = blockContextWriteQueue.then(async () => {
     const contexts = await getBlockContexts();
-
-    // Remove expired contexts
-    const validContexts = contexts.filter((c) => c.expiresAt > Date.now());
-
-    // Add new context
+    const validContexts = contexts.filter((candidate) => candidate.expiresAt > Date.now());
     validContexts.push(context);
-
-    // Keep only recent contexts (max 20)
-    if (validContexts.length > 20) {
-      validContexts.shift();
-    }
-
-    await browser.storage.local.set({
-      [BLOCK_CONTEXT_STORAGE_KEY]: validContexts,
-    });
-
+    await browser.storage.local.set({ [BLOCK_CONTEXT_STORAGE_KEY]: validContexts.slice(-20) });
     return context.id;
-  } catch (error) {
-    console.error('Error storing block context:', error);
-    throw error;
-  }
+  });
+  blockContextWriteQueue = write.catch(() => {});
+  return write;
 }
 
 /**
@@ -145,7 +132,7 @@ function formatBlockReason(context) {
       return `Blocked by rule`;
 
     case 'limit':
-      return `Daily limit reached (${formatSeconds(details.usedSeconds)} of ${formatSeconds(details.limitSeconds)} used)`;
+      return `${details.limitType ? `${details.limitType[0].toUpperCase()}${details.limitType.slice(1)} ` : ''}limit reached (${formatSeconds(details.usedSeconds)} of ${formatSeconds(details.limitSeconds)} used)`;
 
     case 'schedule':
       return `Blocked by schedule${details.scheduleDescription ? `: ${details.scheduleDescription}` : ''}`;

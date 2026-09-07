@@ -45,6 +45,7 @@ function extractAndNormalizeHostname(url) {
 
     // Parse URL
     const urlObj = new URL(url);
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return null;
     const hostname = urlObj.hostname;
 
     if (!hostname) return null;
@@ -69,6 +70,7 @@ function extractFullUrlPath(url) {
     }
 
     const urlObj = new URL(url);
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return null;
     const protocol = urlObj.protocol;
     let hostname = urlObj.hostname;
 
@@ -130,7 +132,9 @@ function urlMatchesPrefix(url, urlPrefix) {
     const prefixNormalized = normalizeURLPrefix(urlPrefix);
     if (!prefixNormalized) return false;
 
-    return fullPath.startsWith(prefixNormalized);
+    const candidate = new URL(fullPath);
+    const prefix = new URL(prefixNormalized);
+    return candidate.origin === prefix.origin && fullPath.startsWith(prefixNormalized);
   } catch (e) {
     return false;
   }
@@ -154,6 +158,7 @@ function normalizeURLPrefix(urlPrefix) {
     }
 
     const urlObj = new URL(urlPrefix);
+    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') return null;
     let hostname = urlObj.hostname;
 
     if (!hostname) return null;

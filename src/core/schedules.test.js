@@ -105,5 +105,19 @@ describe('schedules', () => {
       const outsideTime = new Date('2026-08-21T18:30:00');
       expect(isRuleActive(rule, outsideTime)).toBe(false);
     });
+
+    test('respects legacy flat schedules', () => {
+      const rule = { enabled: true, days: ['Fri'], startTime: '09:00', endTime: '17:00' };
+      expect(isRuleActive(rule, new Date('2026-08-21T14:30:00'))).toBe(true);
+      expect(isRuleActive(rule, new Date('2026-08-21T18:30:00'))).toBe(false);
+    });
+
+    test('treats a disabled nested schedule as unrestricted', () => {
+      const rule = {
+        enabled: true,
+        schedule: { enabled: false, days: ['Fri'], startTime: '09:00', endTime: '17:00' },
+      };
+      expect(isRuleActive(rule, new Date('2026-08-22T18:30:00'))).toBe(true);
+    });
   });
 });

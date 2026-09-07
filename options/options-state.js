@@ -32,6 +32,7 @@ let AppState = {
   categories: ['Other'],
   categoryAssignments: {},
   rules: [], // UI State
+  trackingExclusions: {},
   timeChart: null,
   domainCurrentPage: 1,
   domainItemsPerPage: 10,

@@ -16,7 +16,7 @@ function normalizeRuleTarget(value, matchMode = 'domain') {
     return normalized || null;
   }
   try {
-    const parsed = new URL(target);
+    const parsed = new URL(/^https?:\/\//i.test(target) ? target : `https://${target}`);
     if (!['http:', 'https:'].includes(parsed.protocol)) return null;
     parsed.hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
     if (
@@ -29,6 +29,12 @@ function normalizeRuleTarget(value, matchMode = 'domain') {
   } catch (_error) {
     return null;
   }
+}
+
+function getRuleMatchMode(rule) {
+  if (RULE_MATCH_MODES.includes(rule?.matchMode)) return rule.matchMode;
+  if (rule?.type?.endsWith('-domain') || rule?.type?.endsWith('-url')) return 'domain';
+  return null;
 }
 
 function normalizeCandidateUrl(url) {
@@ -68,20 +74,28 @@ function ruleMatchesUrl(rule, url) {
   if (!rule || rule.enabled === false) return false;
   const candidate = normalizeCandidateUrl(url);
   if (!candidate) return false;
-  const mode = rule.matchMode || (rule.type && rule.type.endsWith('-url') ? 'domain' : null);
+  const mode = getRuleMatchMode(rule);
   const target = normalizeRuleTarget(rule.value, mode);
   if (!target) return false;
   if (mode === 'domain' || mode === 'domain-subdomains') {
     return domainPatternMatches(candidate.hostname, target, mode === 'domain-subdomains');
   }
   const candidateUrl = candidate.toString().replace(/\/$/, '');
-  return mode === 'exact-url' ? candidateUrl === target : candidateUrl.startsWith(target);
+  if (mode === 'exact-url') return candidateUrl === target;
+  const targetUrl = normalizeCandidateUrl(target);
+  return Boolean(targetUrl && candidate.origin === targetUrl.origin && candidateUrl.startsWith(target));
 }
 
 function exceptionMatchesUrl(exception, url) {
   if (typeof exception === 'string')
     return ruleMatchesUrl({ enabled: true, value: exception, matchMode: 'domain-subdomains' }, url);
   return ruleMatchesUrl({ enabled: true, ...exception }, url);
+}
+
+function ruleHasMatchingException(rule, url) {
+  return Boolean(
+    Array.isArray(rule?.exceptions) && rule.exceptions.some((exception) => exceptionMatchesUrl(exception, url))
+  );
 }
 
 function getRuleSpecificity(rule) {
@@ -100,18 +114,19 @@ function evaluateRules(rules, url, context = {}) {
     })
     .sort((a, b) => getRuleSpecificity(b) - getRuleSpecificity(a));
 
-  const exceptions = matches.filter((rule) => Array.isArray(rule.exceptions)).flatMap((rule) => rule.exceptions);
-  const exception = exceptions.find((item) => exceptionMatchesUrl(item, url));
-  const blockingMatch = matches.find((rule) => rule.type.startsWith('block-'));
-  const limitMatches = matches.filter((rule) => rule.type.startsWith('limit-'));
+  const blockingCandidates = matches.filter((rule) => rule.type.startsWith('block-'));
+  const blockingMatch = blockingCandidates.find((rule) => !ruleHasMatchingException(rule, url));
+  const limitMatches = matches.filter((rule) => rule.type.startsWith('limit-') && !ruleHasMatchingException(rule, url));
+  const exceptedRule = matches.find((rule) => ruleHasMatchingException(rule, url));
+  const exception = exceptedRule?.exceptions.find((item) => exceptionMatchesUrl(item, url)) || null;
 
   return {
     url: normalizeCandidateUrl(url),
     matches,
-    blockingRule: exception ? null : blockingMatch || null,
+    blockingRule: blockingMatch || null,
     limitRules: limitMatches,
     exception: exception || null,
-    blocked: Boolean(blockingMatch && !exception),
+    blocked: Boolean(blockingMatch),
   };
 }
 
@@ -120,9 +135,11 @@ if (typeof module !== 'undefined' && module.exports) {
     RULE_MATCH_MODES,
     normalizeRuleTarget,
     normalizeCandidateUrl,
+    getRuleMatchMode,
     domainPatternMatches,
     ruleMatchesUrl,
     exceptionMatchesUrl,
+    ruleHasMatchingException,
     getRuleSpecificity,
     evaluateRules,
   };

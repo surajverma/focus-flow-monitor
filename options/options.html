@@ -10,12 +10,16 @@
       <h1>Focus Flow Monitor - Stats & Settings</h1>
 
       <div class="tabs-container">
-        <div class="tab-nav">
-          <button class="tab-link active" data-tab="dashboardTab">📊 Dashboard</button>
-          <button class="tab-link" data-tab="contentControlTab">🚦 Content Control</button>
-          <button class="tab-link" data-tab="productivityTab">💪 Productivity</button>
-          <button class="tab-link" data-tab="insightsTab">📈 Insights & Profiles</button>
-          <button class="tab-link" data-tab="generalSettingsTab">⚙️ Settings</button>
+        <div class="tab-nav" role="tablist" aria-label="Options sections">
+          <button class="tab-link active" data-tab="dashboardTab" role="tab" aria-selected="true">📊 Dashboard</button>
+          <button class="tab-link" data-tab="contentControlTab" role="tab" aria-selected="false">
+            🚦 Content Control
+          </button>
+          <button class="tab-link" data-tab="productivityTab" role="tab" aria-selected="false">💪 Productivity</button>
+          <button class="tab-link" data-tab="insightsTab" role="tab" aria-selected="false">
+            📈 Insights & Profiles
+          </button>
+          <button class="tab-link" data-tab="generalSettingsTab" role="tab" aria-selected="false">⚙️ Settings</button>
         </div>
 
         <div id="dashboardTab" class="tab-content active">
@@ -168,21 +172,26 @@
           </section>
           <hr class="tab-section-divider" />
           <section id="uncategorized-sites-section">
-            <h2>Uncategorized Websites</h2>
-            <p class="setting-description">Select tracked domains resolved to Other and assign them together.</p>
+            <h2>Bulk Website Assignment</h2>
+            <p class="setting-description">Select any tracked websites and assign them to a category together.</p>
             <div class="form-inline">
               <label for="uncategorizedCategorySelect">Assign to:</label>
               <select id="uncategorizedCategorySelect"></select>
               <button id="assignUncategorizedBtn" class="action-button">Assign Selected</button>
             </div>
-            <ul id="uncategorizedList" class="settings-list"></ul>
+            <ul
+              id="uncategorizedList"
+              class="settings-list"
+              aria-label="Tracked websites available for bulk assignment"
+            ></ul>
             <div id="uncategorizedStatus" class="status-message" aria-live="polite"></div>
           </section>
           <hr class="tab-section-divider" />
           <section id="blocking-section">
             <h2>Site Blocking & Time Limiting</h2>
             <p>
-              Permanently block access, set daily time limits, or schedule blocks for specific websites or categories.
+              Permanently block access, set calendar-day, calendar-week, or calendar-month limits, or schedule blocks
+              for specific websites or categories.
             </p>
             <div class="form-inline add-rule-form">
               <select id="ruleTypeSelect">
@@ -208,7 +217,7 @@
                   <option value="minutes" selected>Minutes</option>
                   <option value="hours">Hours</option>
                 </select>
-                <span> per day</span>
+                <span id="rulePeriodWording">per day</span>
                 <label for="rulePeriodSelect">Period:</label>
                 <select id="rulePeriodSelect">
                   <option value="day" selected>Day</option>
@@ -442,25 +451,136 @@
               <button id="importDataBtn" class="action-button">Import Data from File</button>
               <input type="file" id="importFileInput" accept=".ffm" />
             </div>
+            <p id="backupStatus" class="setting-description" aria-live="polite"></p>
             <p id="importStatus" class="status-message"></p>
+            <details class="privacy-delete-panel">
+              <summary>Delete selected browsing history</summary>
+              <p>
+                Choose a website, a date range, or both. This removes saved browsing time; tracking exclusions control
+                future tracking separately.
+              </p>
+              <div class="local-form-grid">
+                <label
+                  >Website<select id="historyDomain">
+                    <option value="">All websites</option>
+                  </select></label
+                >
+                <label>From<input type="date" id="historyFrom" /></label>
+                <label>Through<input type="date" id="historyTo" /></label>
+              </div>
+              <p class="setting-description">
+                Leave dates blank to delete all retained history for one website. Date ranges include both days. Rules,
+                goals, assignments, and Tomato Clock sessions are kept.
+              </p>
+              <button id="previewHistoryBtn" class="action-button secondary">Preview deletion</button>
+              <div id="historyPreview" class="deletion-preview" hidden>
+                <p id="historyPreviewText"></p>
+                <p id="historyHourlyNote"></p>
+                <p>
+                  This cannot be undone. You can export a backup above first. Deleting time also updates goal progress
+                  and time-limit usage.
+                </p>
+                <button id="confirmHistoryBtn" class="action-button danger">Delete this history</button>
+                <button id="cancelHistoryBtn" class="action-button secondary">Cancel</button>
+              </div>
+              <p id="historyStatus" role="status"></p>
+            </details>
           </section>
         </div>
 
         <div id="insightsTab" class="tab-content">
           <section id="weekly-summary-section">
-            <h2>Weekly Summary</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">YOUR WEEK, IN FOCUS</span>
+                <h2>Weekly Summary</h2>
+              </div>
+              <span class="local-badge">Stored only on this device</span>
+            </div>
             <p class="setting-description">
               This report is calculated locally from the tracking data stored in Firefox.
             </p>
             <div id="weeklySummaryStatus" class="status-message" aria-live="polite">Loading summary...</div>
             <div id="weeklySummaryMetrics" class="summary-metric-box"></div>
-            <ul id="weeklySummaryTopDomains" class="settings-list"></ul>
+            <p id="weeklyComparisonNote" class="setting-description"></p>
+            <div class="insight-columns">
+              <div>
+                <h3>Where your time went</h3>
+                <ul id="weeklySummaryCategories" class="insight-breakdown"></ul>
+              </div>
+              <div>
+                <h3>Most visited by time</h3>
+                <ul id="weeklySummaryTopDomains" class="insight-breakdown"></ul>
+              </div>
+            </div>
+            <details class="score-explainer">
+              <summary>How is my focus score calculated?</summary>
+              <p>
+                Productive time ÷ all tracked time × 100. Category ratings come from your Productivity settings. Neutral
+                and distracting time count toward the total. Excluded websites are omitted. Best day is the day with the
+                highest focus score; ties use tracked time. Reports and goals use retained browsing history, so deletion
+                or retention cleanup can change the results.
+              </p>
+            </details>
+          </section>
+          <hr class="tab-section-divider" />
+          <section id="local-goals-section">
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">SMALL STEPS, YOUR PACE</span>
+                <h2>Local Goals</h2>
+              </div>
+              <button id="newGoalBtn" class="action-button primary">Add a goal</button>
+            </div>
+            <p class="setting-description">
+              Build a habit or set a gentle boundary. Goals track progress without blocking sites or sending
+              notifications. Days reset at midnight; weeks start Monday.
+            </p>
+            <div id="localGoalsList" class="goal-grid"></div>
+            <form id="localGoalForm" class="goal-editor" hidden>
+              <h3 id="goalEditorTitle">Create a goal</h3>
+              <div class="local-form-grid">
+                <label
+                  >Goal name<input id="goalName" maxlength="80" required placeholder="Make room for focused work"
+                /></label>
+                <label
+                  >Track<select id="goalType">
+                    <option value="productive">Productive time</option>
+                    <option value="category">A category</option>
+                    <option value="domain">A website</option>
+                  </select></label
+                >
+                <label id="goalCategoryField" hidden>Category<select id="goalCategory"></select></label>
+                <label id="goalDomainField" hidden>Website<input id="goalDomain" placeholder="example.com" /></label>
+                <label
+                  >Target<select id="goalDirection">
+                    <option value="at-least">At least</option>
+                    <option value="at-most">At most</option>
+                  </select></label
+                >
+                <label
+                  >Minutes<input id="goalMinutes" type="number" min="1" max="10080" step="1" value="30" required
+                /></label>
+                <label
+                  >Repeat<select id="goalPeriod">
+                    <option value="day">Every day</option>
+                    <option value="week">Every week</option>
+                  </select></label
+                >
+              </div>
+              <div class="feature-actions">
+                <button type="submit" class="action-button primary">Save goal</button
+                ><button type="button" id="cancelGoalBtn" class="action-button secondary">Cancel</button>
+              </div>
+            </form>
+            <p id="goalStatus" role="status"></p>
           </section>
           <hr class="tab-section-divider" />
           <section id="focus-profiles-section">
             <h2>Focus Profiles</h2>
             <p class="setting-description">
-              Profiles provide an optional local allow-list mode. Empty allow-lists cannot be activated.
+              Profiles provide an optional local allow-list mode. Enter allowed website domains separated by commas;
+              empty allow-lists cannot be activated.
             </p>
             <div id="profileForm" class="profile-form">
               <div class="profile-form-field profile-name-field">
@@ -471,6 +591,10 @@
                 <label for="profileDomainsInput">Allowed domains:</label>
                 <input id="profileDomainsInput" type="text" placeholder="example.com, docs.example.com" />
               </div>
+              <div class="profile-form-field profile-categories-field">
+                <label for="profileCategoriesInput">Allowed categories:</label>
+                <select id="profileCategoriesInput" multiple size="3"></select>
+              </div>
               <div class="profile-schedule-field">
                 <span class="profile-field-label">Schedule:</span>
                 <label for="profileStartTimeInput">Start</label>
@@ -478,6 +602,16 @@
                 <label for="profileEndTimeInput">End</label>
                 <input id="profileEndTimeInput" type="time" />
               </div>
+              <fieldset class="profile-days-field">
+                <legend>Active days</legend>
+                <label><input type="checkbox" name="profileDay" value="Mon" checked />Mon</label>
+                <label><input type="checkbox" name="profileDay" value="Tue" checked />Tue</label>
+                <label><input type="checkbox" name="profileDay" value="Wed" checked />Wed</label>
+                <label><input type="checkbox" name="profileDay" value="Thu" checked />Thu</label>
+                <label><input type="checkbox" name="profileDay" value="Fri" checked />Fri</label>
+                <label><input type="checkbox" name="profileDay" value="Sat" checked />Sat</label>
+                <label><input type="checkbox" name="profileDay" value="Sun" checked />Sun</label>
+              </fieldset>
               <button id="saveProfileBtn" class="action-button primary">Save Profile</button>
             </div>
             <div id="profileStatus" class="status-message" aria-live="polite"></div>
@@ -516,7 +650,9 @@
       </div>
       <div id="editRuleModal" class="modal">
         <div class="modal-content">
-          <span class="close-button" id="closeEditModalBtn">&times;</span>
+          <button type="button" class="close-button" id="closeEditModalBtn" aria-label="Close rule editor">
+            &times;
+          </button>
           <h3>Edit Rule</h3>
           <div id="editRuleFormContent">
             <input type="hidden" id="editRuleIndex" />
@@ -540,14 +676,30 @@
               <select id="editRuleCategorySelect"></select>
             </div>
             <div class="form-group" id="editRuleLimitGroup">
-              <label>Limit (per day):</label>
+              <label>Limit:</label>
               <div class="time-limit-input">
                 <input type="number" id="editRuleLimitInput" min="1" step="1" />
                 <select id="editRuleUnitSelect">
                   <option value="minutes">Minutes</option>
                   <option value="hours">Hours</option>
                 </select>
+                <span>per</span>
+                <select id="editRulePeriodSelect">
+                  <option value="day">Day</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                </select>
               </div>
+            </div>
+
+            <div class="form-group" id="editRuleExceptionsGroup">
+              <label for="editRuleExceptionsInput">Exceptions:</label>
+              <textarea
+                id="editRuleExceptionsInput"
+                rows="3"
+                placeholder="allowed.example.com, https://example.com/allowed"
+              ></textarea>
+              <small>Comma-separated domains or HTTP/HTTPS URL prefixes that this rule should allow.</small>
             </div>
 
             <div class="form-group schedule-inputs" id="editRuleScheduleGroup">
@@ -580,7 +732,14 @@
 
       <div id="editAssignmentModal" class="modal">
         <div class="modal-content">
-          <span class="close-button" id="closeEditAssignmentModalBtn">&times;</span>
+          <button
+            type="button"
+            class="close-button"
+            id="closeEditAssignmentModalBtn"
+            aria-label="Close assignment editor"
+          >
+            &times;
+          </button>
           <h3>Edit Assignment</h3>
           <div id="editAssignmentFormContent">
             <input type="hidden" id="editAssignmentOriginalDomain" />
@@ -610,9 +769,12 @@
     <script src="../src/core/domain-matcher.js"></script>
     <script src="../src/core/categories.js"></script>
     <script src="../src/core/rules.js"></script>
+    <script src="../src/core/schedules.js"></script>
     <script src="../src/core/insights.js"></script>
+    <script src="../src/core/goals.js"></script>
     <script src="../src/core/profiles.js"></script>
     <script src="../src/core/validation.js"></script>
+    <script src="../src/core/schema.js"></script>
     <script src="../src/options/bulk-operations.js"></script>
     <script src="options-utils.js"></script>
     <script src="options-state.js"></script>
@@ -620,5 +782,6 @@
     <script src="options-handlers.js"></script>
     <script src="options-main.js"></script>
     <script src="options-feature-polish.js"></script>
+    <script src="options-local-tools.js"></script>
   </body>
 </html>

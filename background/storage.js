@@ -8,13 +8,15 @@
 
 const backgroundStorageManager = typeof createStorageManager === 'function' ? createStorageManager() : null;
 
-async function loadData() {
+async function loadData({ clearTrackingState = true } = {}) {
   console.log('[Storage] loadData started.');
   try {
     // Clear any potentially stale "currentTrackingState" on startup.
     // This state is only for tracking time between active browser states and should not persist across browser sessions.
-    await browser.storage.local.remove(FocusFlowState.STORAGE_KEY_TRACKING_STATE);
-    console.log('[Storage] Cleared potentially stale tracking state on startup.');
+    if (clearTrackingState) {
+      await browser.storage.local.remove(FocusFlowState.STORAGE_KEY_TRACKING_STATE);
+      console.log('[Storage] Cleared potentially stale tracking state on startup.');
+    }
 
     const keysToLoad = [
       'trackedData',
@@ -44,10 +46,10 @@ async function loadData() {
     let needsSave = false; // Flag to check if initial save of defaults is needed
     let defaults = null;
     const needDefaultConfig =
-      !result.categories ||
-      result.categories.length === 0 ||
-      !result.categoryAssignments ||
-      Object.keys(result.categoryAssignments).length === 0;
+      !Array.isArray(migrated.categories) ||
+      migrated.categories.length === 0 ||
+      !migrated.categoryAssignments ||
+      Object.keys(migrated.categoryAssignments).length === 0;
 
     if (needDefaultConfig) {
       try {
@@ -68,23 +70,23 @@ async function loadData() {
 
     // Initialize state properties from storage or defaults
     FocusFlowState.categories =
-      result.categories && result.categories.length > 0
-        ? result.categories
+      migrated.categories && migrated.categories.length > 0
+        ? migrated.categories
         : defaults
           ? [...defaults.categories]
           : ['Other'];
     FocusFlowState.categoryAssignments =
-      result.categoryAssignments && Object.keys(result.categoryAssignments).length > 0
-        ? result.categoryAssignments
+      migrated.categoryAssignments && Object.keys(migrated.categoryAssignments).length > 0
+        ? migrated.categoryAssignments
         : defaults
           ? { ...defaults.assignments }
           : {};
     FocusFlowState.rules = migrated.rules && Array.isArray(migrated.rules) ? migrated.rules : [];
-    FocusFlowState.trackedData = result.trackedData || {};
-    FocusFlowState.categoryTimeData = result.categoryTimeData || {};
-    FocusFlowState.dailyDomainData = result.dailyDomainData || {};
-    FocusFlowState.dailyCategoryData = result.dailyCategoryData || {};
-    FocusFlowState.hourlyData = result.hourlyData || {};
+    FocusFlowState.trackedData = migrated.trackedData || {};
+    FocusFlowState.categoryTimeData = migrated.categoryTimeData || {};
+    FocusFlowState.dailyDomainData = migrated.dailyDomainData || {};
+    FocusFlowState.dailyCategoryData = migrated.dailyCategoryData || {};
+    FocusFlowState.hourlyData = migrated.hourlyData || {};
     FocusFlowState.profiles = Array.isArray(migrated.profiles) ? migrated.profiles : [];
     FocusFlowState.activeFocusProfile = migrated.activeFocusProfile || null;
     FocusFlowState.trackingExclusions = migrated.trackingExclusions || {};
@@ -120,7 +122,8 @@ async function loadData() {
       !result.hourlyData ||
       !result.rules ||
       !result[FocusFlowState.STORAGE_KEY_POMODORO_STATS_DAILY] ||
-      !result[FocusFlowState.STORAGE_KEY_POMODORO_STATS_ALL_TIME]
+      !result[FocusFlowState.STORAGE_KEY_POMODORO_STATS_ALL_TIME] ||
+      result.schemaVersion !== migrated.schemaVersion
     ) {
       console.log('[Storage] Saving initial/updated non-tracking state (including Pomodoro stats if new).');
       await performSave(); // This will now also save the (potentially empty/default) pomodoro stats

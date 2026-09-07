@@ -16,18 +16,6 @@ function formatFeatureSeconds(seconds) {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
-function migrateLegacyProfileSchedule(profile) {
-  const legacyDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  const days = profile?.schedule?.days;
-  if (!Array.isArray(days) || days.length !== legacyDays.length || !legacyDays.every((day) => days.includes(day))) {
-    return profile;
-  }
-  return {
-    ...profile,
-    schedule: { ...profile.schedule, days: [...legacyDays, 'Sat', 'Sun'] },
-  };
-}
-
 async function loadFeatureData() {
   const data = await browser.storage.local.get([
     'dailyDomainData',
@@ -39,24 +27,16 @@ async function loadFeatureData() {
     'trackedData',
     'categories',
     'categoryAssignments',
+    'lastBackupAt',
+    'localGoals',
   ]);
-  const profiles = Array.isArray(data.profiles) ? data.profiles : [];
-  const migratedProfiles = profiles.map(migrateLegacyProfileSchedule);
-  const scheduleMigrated = migratedProfiles.some((profile, index) => profile !== profiles[index]);
-  if (scheduleMigrated) {
-    const activeProfile = data.activeFocusProfile
-      ? migratedProfiles.find((profile) => profile.id === data.activeFocusProfile.id) ||
-        migrateLegacyProfileSchedule(data.activeFocusProfile)
-      : null;
-    await browser.storage.local.set({ profiles: migratedProfiles, activeFocusProfile: activeProfile });
-    await browser.runtime.sendMessage({ action: 'profilesUpdated' });
-    data.profiles = migratedProfiles;
-    data.activeFocusProfile = activeProfile;
-  }
   renderWeeklySummary(data);
   renderProfiles(data.profiles || [], data.activeFocusProfile || null);
+  populateProfileCategories(data.categories || ['Other']);
   renderExclusions(data.trackingExclusions || {});
   renderUncategorized(data.dailyDomainData || {}, data.categoryAssignments || {}, data.categories || ['Other']);
+  renderBackupStatus(data.lastBackupAt);
+  if (typeof renderLocalTools === 'function') renderLocalTools(data);
   const bytes = await browser.storage.local.getBytesInUse(null).catch(() => null);
   const privacySummary = document.getElementById('privacySummary');
   if (privacySummary)
@@ -75,14 +55,25 @@ async function renderUncategorized(dailyDomainData, assignments, categories) {
     .filter((category) => category !== 'Other')
     .forEach((category) => select.appendChild(new Option(category, category)));
   list.replaceChildren();
-  const domains = await getUncategorizedDomains(dailyDomainData, assignments);
-  domains.slice(0, 100).forEach(({ domain, formattedTime }) => {
+  const totals = {};
+  Object.values(dailyDomainData || {}).forEach((day) => {
+    Object.entries(day || {}).forEach(([domain, seconds]) => {
+      totals[domain] = (totals[domain] || 0) + (Number(seconds) || 0);
+    });
+  });
+  const domains = Object.entries(totals)
+    .sort((a, b) => b[1] - a[1])
+    .map(([domain, seconds]) => ({ domain, formattedTime: formatFeatureSeconds(seconds) }));
+  domains.forEach(({ domain, formattedTime }) => {
     const item = document.createElement('li');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.dataset.domain = domain;
     checkbox.className = 'uncategorized-checkbox';
-    item.append(checkbox, document.createTextNode(`${domain} · ${formattedTime}`));
+    const details = document.createElement('span');
+    details.className = 'bulk-domain-details';
+    details.textContent = `${resolveCategoryForDomain(domain, assignments, 'Other')} · ${formattedTime}`;
+    item.append(checkbox, document.createTextNode(domain), details);
     list.appendChild(item);
   });
   if (!domains.length) list.textContent = 'No uncategorized usage found.';
@@ -101,18 +92,21 @@ async function testRuleFromForm() {
   const normalizedUrl = candidate.toString();
   const domain = extractAndNormalizeHostname(normalizedUrl);
   const category = resolveCategoryForDomain(domain, data.categoryAssignments || {}, 'Other');
-  const result = evaluateRules(data.rules || [], normalizedUrl, { category });
+  const activeRules = (data.rules || []).filter((rule) => isRuleActive(rule, new Date()));
+  const inactiveRules = (data.rules || []).filter((rule) => !isRuleActive(rule, new Date()));
+  const result = evaluateRules(activeRules, normalizedUrl, { category });
+  const inactiveMatches = evaluateRules(inactiveRules, normalizedUrl, { category }).matches.length;
   if (!output) return;
 
   if (result.blocked) {
     const rule = result.blockingRule;
     const type = rule.type === 'block-category' ? 'category block' : 'site block';
     const mode = rule.matchMode ? `, ${rule.matchMode.replaceAll('-', ' ')}` : '';
-    output.textContent = `Blocked · ${domain} · Category: ${category} · Matching ${type}: “${rule.value}”${mode} · ${result.matches.length} matching rule(s)`;
+    output.textContent = `Blocked now · ${domain} · Category: ${category} · Matching ${type}: “${rule.value}”${mode} · ${result.matches.length} active matching rule(s)${inactiveMatches ? ` · ${inactiveMatches} scheduled rule(s) inactive now` : ''}`;
   } else if (result.exception) {
-    output.textContent = `Allowed by exception · ${domain} · Category: ${category} · ${result.matches.length} matching rule(s)`;
+    output.textContent = `Allowed by exception · ${domain} · Category: ${category} · ${result.matches.length} active matching rule(s)`;
   } else {
-    output.textContent = `Allowed · ${domain} · Category: ${category} · ${result.matches.length} matching rule(s)`;
+    output.textContent = `Allowed now · ${domain} · Category: ${category} · ${result.matches.length} active matching rule(s)${inactiveMatches ? ` · ${inactiveMatches} scheduled rule(s) inactive now` : ''}`;
   }
 }
 
@@ -121,22 +115,90 @@ function renderWeeklySummary(data) {
     dailyDomainData: data.dailyDomainData || {},
     dailyCategoryData: data.dailyCategoryData || {},
     productivityRatings: data.categoryProductivityRatings || {},
+    trackingExclusions: data.trackingExclusions || {},
+    categoryAssignments: data.categoryAssignments || {},
   });
   const metrics = document.getElementById('weeklySummaryMetrics');
   const status = document.getElementById(FEATURE_STATUS_IDS.summary);
   if (!metrics || !status) return;
   if (!summary.totalSeconds) {
-    status.textContent = 'No completed week data is available yet.';
+    status.textContent = 'No tracked time is available for this week yet.';
     metrics.textContent = '';
   } else {
-    status.textContent = `${summary.startDate} to ${summary.endDate} · ${summary.datesTracked} days tracked`;
+    status.textContent = `${summary.startDate} to ${summary.endDate} · ${summary.datesTracked} ${summary.datesTracked === 1 ? 'day' : 'days'} tracked`;
     const focusScore = Number(summary.focusScore) || 0;
     const focusScoreChange = Number(summary.focusScoreChange) || 0;
-    metrics.textContent = `Total ${formatFeatureSeconds(summary.totalSeconds)} · Focus score ${focusScore}% (${focusScoreChange >= 0 ? '+' : ''}${focusScoreChange} points) · Best day ${summary.bestDay?.date || 'Not available'}`;
+    metrics.replaceChildren();
+    const comparison = summary.previousTotalSeconds
+      ? `${focusScoreChange >= 0 ? '+' : ''}${focusScoreChange} points vs last week`
+      : 'No previous week to compare';
+    for (const [label, value, note] of [
+      ['Focus score', `${focusScore}%`, comparison],
+      [
+        'Productive time',
+        formatFeatureSeconds(summary.productiveSeconds),
+        summary.previousTotalSeconds
+          ? `${formatFeatureSeconds(summary.previousProductiveSeconds)} last week`
+          : 'Time in productive categories',
+      ],
+      [
+        'Total time',
+        formatFeatureSeconds(summary.totalSeconds),
+        `${formatFeatureSeconds(summary.neutralSeconds)} neutral · ${formatFeatureSeconds(summary.distractingSeconds)} distracting`,
+      ],
+      [
+        'Best day',
+        summary.bestDay
+          ? new Date(`${summary.bestDay.date}T12:00:00`).toLocaleDateString(undefined, {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+            })
+          : '—',
+        summary.bestDay ? `${summary.bestDay.focusScore}% focus score` : 'Browse to begin',
+      ],
+    ]) {
+      const card = document.createElement('div');
+      card.className = 'insight-metric';
+      const title = document.createElement('span');
+      title.textContent = label;
+      const number = document.createElement('strong');
+      number.textContent = value;
+      const caption = document.createElement('small');
+      caption.textContent = note;
+      card.append(title, number, caption);
+      metrics.appendChild(card);
+    }
+  }
+  const comparisonNote = document.getElementById('weeklyComparisonNote');
+  if (comparisonNote)
+    comparisonNote.textContent =
+      'This week so far compared with the full previous Monday–Sunday week. All calculations stay on your device.';
+  const categories = document.getElementById('weeklySummaryCategories');
+  if (categories) {
+    categories.replaceChildren();
+    if (!summary.topCategories.length) categories.textContent = 'Your category breakdown will appear as you browse.';
+    summary.topCategories.forEach(({ category, seconds, share, rating }) => {
+      const item = document.createElement('li');
+      const label = document.createElement('div');
+      label.className = 'breakdown-label';
+      const name = document.createElement('span');
+      name.textContent = category;
+      const detail = document.createElement('small');
+      detail.textContent = `${formatFeatureSeconds(seconds)} · ${share}% · ${rating === 1 ? 'Productive' : rating === -1 ? 'Distracting' : 'Neutral'}`;
+      label.append(name, detail);
+      const bar = document.createElement('progress');
+      bar.max = 100;
+      bar.value = share;
+      bar.setAttribute('aria-label', `${category}: ${share}% of tracked time`);
+      item.append(label, bar);
+      categories.appendChild(item);
+    });
   }
   const list = document.getElementById('weeklySummaryTopDomains');
   if (!list) return;
   list.replaceChildren();
+  if (!summary.topDomains.length) list.textContent = 'No tracked websites this week yet.';
   summary.topDomains.forEach(({ domain, seconds }) => {
     const item = document.createElement('li');
     item.textContent = `${domain}: ${formatFeatureSeconds(seconds)}`;
@@ -153,7 +215,12 @@ function renderProfiles(profiles, activeProfile) {
     item.className = 'profile-list-item';
     const label = document.createElement('span');
     label.className = 'profile-summary';
-    label.textContent = `${profile.name} · ${(profile.allowedDomains || []).join(', ')}`;
+    const allowed = [
+      ...(profile.allowedDomains || []),
+      ...(profile.allowedCategories || []).map((category) => `Category: ${category}`),
+    ];
+    const days = profile.schedule?.days?.length ? ` · ${profile.schedule.days.join(', ')}` : '';
+    label.textContent = `${profile.name} · ${allowed.join(', ')}${days}`;
     const controls = document.createElement('div');
     controls.className = 'profile-controls';
     const startStopButton = document.createElement('button');
@@ -203,6 +270,14 @@ function editProfile(profile) {
   document.getElementById('profileDomainsInput').value = (profile.allowedDomains || []).join(', ');
   document.getElementById('profileStartTimeInput').value = profile.schedule?.startTime || '';
   document.getElementById('profileEndTimeInput').value = profile.schedule?.endTime || '';
+  const selectedCategories = new Set(profile.allowedCategories || []);
+  Array.from(document.getElementById('profileCategoriesInput')?.options || []).forEach((option) => {
+    option.selected = selectedCategories.has(option.value);
+  });
+  const selectedDays = new Set(profile.schedule?.days || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  document.querySelectorAll('input[name="profileDay"]').forEach((checkbox) => {
+    checkbox.checked = selectedDays.has(checkbox.value);
+  });
   document.getElementById('saveProfileBtn').textContent = 'Save Changes';
   featureStatus(FEATURE_STATUS_IDS.profile, `Editing ${profile.name}.`);
   document.getElementById('profileNameInput').focus();
@@ -223,6 +298,9 @@ function renderExclusions(exclusions) {
         const next = { ...exclusions };
         delete next[domain];
         await browser.storage.local.set({ trackingExclusions: next });
+        await browser.runtime.sendMessage({ action: 'trackingExclusionsUpdated' });
+        if (typeof loadAllData === 'function') await loadAllData();
+        if (typeof updateDisplayForSelectedRangeUI === 'function') updateDisplayForSelectedRangeUI(false);
         await loadFeatureData();
       });
       item.append(domain, remove);
@@ -240,12 +318,22 @@ async function saveProfileFromForm() {
     .split(',')
     .map((value) => normalizeDomain(value.trim()))
     .filter(Boolean);
-  if (!name || allowedDomains.length === 0) {
-    featureStatus(FEATURE_STATUS_IDS.profile, 'Enter a profile name and at least one allowed domain.', true);
+  const allowedCategories = Array.from(document.getElementById('profileCategoriesInput')?.selectedOptions || []).map(
+    (option) => option.value
+  );
+  if (!name || allowedDomains.length + allowedCategories.length === 0) {
+    featureStatus(FEATURE_STATUS_IDS.profile, 'Enter a profile name and allow at least one domain or category.', true);
     return;
   }
   if (Boolean(startInput?.value) !== Boolean(endInput?.value)) {
     featureStatus(FEATURE_STATUS_IDS.profile, 'Enter both schedule times or leave both blank.', true);
+    return;
+  }
+  const days = Array.from(document.querySelectorAll('input[name="profileDay"]:checked')).map(
+    (checkbox) => checkbox.value
+  );
+  if (!days.length) {
+    featureStatus(FEATURE_STATUS_IDS.profile, 'Select at least one active day.', true);
     return;
   }
   const profile = {
@@ -254,15 +342,11 @@ async function saveProfileFromForm() {
     description: '',
     enabled: true,
     allowedDomains,
-    allowedCategories: [],
-    schedule:
-      startInput?.value && endInput?.value
-        ? {
-            days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            startTime: startInput.value,
-            endTime: endInput.value,
-          }
-        : null,
+    allowedCategories,
+    schedule: {
+      days,
+      ...(startInput?.value && endInput?.value ? { startTime: startInput.value, endTime: endInput.value } : {}),
+    },
   };
   const result = await browser.storage.local.get(['profiles', 'activeFocusProfile']);
   const profiles = Array.isArray(result.profiles) ? result.profiles : [];
@@ -277,13 +361,50 @@ async function saveProfileFromForm() {
   domainsInput.value = '';
   if (startInput) startInput.value = '';
   if (endInput) endInput.value = '';
+  Array.from(document.getElementById('profileCategoriesInput')?.options || []).forEach((option) => {
+    option.selected = false;
+  });
+  document.querySelectorAll('input[name="profileDay"]').forEach((checkbox) => {
+    checkbox.checked = true;
+  });
   editingProfileId = null;
   document.getElementById('saveProfileBtn').textContent = 'Save Profile';
   featureStatus(FEATURE_STATUS_IDS.profile, `${name} saved.`);
   await loadFeatureData();
 }
 
+function populateProfileCategories(categories) {
+  const select = document.getElementById('profileCategoriesInput');
+  if (!select) return;
+  const selected = new Set(Array.from(select.selectedOptions).map((option) => option.value));
+  select.replaceChildren();
+  categories.forEach((category) => {
+    const option = new Option(category, category);
+    option.selected = selected.has(category);
+    select.appendChild(option);
+  });
+}
+
+function renderBackupStatus(lastBackupAt) {
+  const status = document.getElementById('backupStatus');
+  if (!status) return;
+  if (!lastBackupAt) {
+    status.textContent = 'No local backup export has been recorded yet. A monthly reminder will appear here.';
+    return;
+  }
+  const ageDays = Math.max(0, Math.floor((Date.now() - new Date(lastBackupAt).getTime()) / 86400000));
+  status.textContent = `Last backup exported ${ageDays === 0 ? 'today' : `${ageDays} day(s) ago`}.${ageDays >= 30 ? ' Consider exporting a fresh backup.' : ''}`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+  const updatePeriodWording = () => {
+    const period = document.getElementById('rulePeriodSelect')?.value || 'day';
+    const wording = document.getElementById('rulePeriodWording');
+    if (wording) wording.textContent = `per ${period}`;
+  };
+  document.getElementById('rulePeriodSelect')?.addEventListener('change', updatePeriodWording);
+  document.getElementById('ruleTypeSelect')?.addEventListener('change', updatePeriodWording);
+  updatePeriodWording();
   document.getElementById('saveProfileBtn')?.addEventListener('click', saveProfileFromForm);
   document.getElementById('addExclusionBtn')?.addEventListener('click', async () => {
     const input = document.getElementById('exclusionDomainInput');
@@ -291,6 +412,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!domain) return;
     const result = await browser.storage.local.get('trackingExclusions');
     await browser.storage.local.set({ trackingExclusions: { ...(result.trackingExclusions || {}), [domain]: true } });
+    await browser.runtime.sendMessage({ action: 'trackingExclusionsUpdated' });
+    if (typeof loadAllData === 'function') await loadAllData();
+    if (typeof updateDisplayForSelectedRangeUI === 'function') updateDisplayForSelectedRangeUI(false);
     input.value = '';
     await loadFeatureData();
   });

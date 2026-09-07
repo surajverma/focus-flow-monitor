@@ -13,6 +13,7 @@
       "src/core/schedules.js",
       "src/core/rules.js",
       "src/core/insights.js",
+      "src/core/history-deletion.js",
       "src/core/profiles.js",
       "src/core/schema.js",
       "src/core/storage-manager.js",

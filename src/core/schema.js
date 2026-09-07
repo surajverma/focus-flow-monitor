@@ -3,7 +3,7 @@
  * Handles backward compatibility and data upgrades
  */
 
-const CURRENT_SCHEMA_VERSION = 2;
+const CURRENT_SCHEMA_VERSION = 3;
 
 /**
  * Get the default/empty storage schema
@@ -27,8 +27,10 @@ function getDefaultSchema() {
     categoryAssignments: {},
     rules: [],
     profiles: [],
+    localGoals: [],
     activeFocusProfile: null,
     trackingExclusions: {},
+    lastBackupAt: null,
 
     // Tracking data
     trackedData: {},
@@ -80,8 +82,13 @@ function migrateData(oldData) {
     data = migrateV1toV2(data);
   }
 
+  if (version < 3) {
+    data = migrateV2toV3(data);
+  }
+
   // Set current version
   data.schemaVersion = CURRENT_SCHEMA_VERSION;
+  if (!Array.isArray(data.localGoals)) data.localGoals = [];
 
   return data;
 }
@@ -97,7 +104,8 @@ function migrateV1toV2(data) {
 
   // Migrate rules
   if (migrated.rules && Array.isArray(migrated.rules)) {
-    migrated.rules = migrated.rules.map((rule, idx) => {
+    migrated.rules = migrated.rules.map((originalRule, idx) => {
+      const rule = { ...originalRule };
       // Generate ID if missing
       if (!rule.id) {
         rule.id = generateRuleId(rule, idx);
@@ -167,9 +175,69 @@ function migrateV1toV2(data) {
  * @returns {string} Generated ID
  */
 function generateRuleId(rule, index) {
-  // Create a simple hash-like ID from rule properties
-  const key = `${rule.type}-${rule.value || ''}-${index}`;
-  return `rule_${Date.now()}_${index}`;
+  const key = `${rule?.type || 'rule'}|${rule?.value || ''}|${rule?.matchMode || ''}|${index}`;
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `rule_${(hash >>> 0).toString(36)}`;
+}
+
+function generateProfileId(profile, index) {
+  return generateRuleId({ type: 'profile', value: profile?.name || '' }, index).replace(/^rule_/, 'profile_');
+}
+
+function migrateV2toV3(data) {
+  const defaults = getDefaultSchema();
+  const migrated = { ...defaults, ...data };
+  migrated.categories = Array.isArray(data.categories) ? [...data.categories] : [...defaults.categories];
+  if (!migrated.categories.includes('Other')) migrated.categories.push('Other');
+  migrated.categoryAssignments = isPlainObject(data.categoryAssignments) ? { ...data.categoryAssignments } : {};
+  migrated.rules = (Array.isArray(data.rules) ? data.rules : []).map((originalRule, index) => {
+    const rule = { ...originalRule };
+    if (rule.type === 'block-domain') rule.type = 'block-url';
+    if (rule.type === 'limit-domain') rule.type = 'limit-url';
+    rule.id = rule.id || generateRuleId(rule, index);
+    rule.enabled = rule.enabled !== false;
+    rule.exceptions = Array.isArray(rule.exceptions) ? rule.exceptions : [];
+    if (rule.type?.startsWith('limit-'))
+      rule.period = ['day', 'week', 'month'].includes(rule.period) ? rule.period : 'day';
+    if (rule.type?.endsWith('-url')) rule.matchMode = rule.matchMode || 'domain';
+    return rule;
+  });
+  migrated.profiles = (Array.isArray(data.profiles) ? data.profiles : []).map((originalProfile, index) => ({
+    ...originalProfile,
+    id: originalProfile.id || generateProfileId(originalProfile, index),
+    enabled: originalProfile.enabled !== false,
+    allowedDomains: Array.isArray(originalProfile.allowedDomains) ? originalProfile.allowedDomains : [],
+    allowedCategories: Array.isArray(originalProfile.allowedCategories) ? originalProfile.allowedCategories : [],
+  }));
+  if (isPlainObject(data.activeFocusProfile)) {
+    const storedActive = data.activeFocusProfile;
+    migrated.activeFocusProfile = migrated.profiles.find(
+      (profile) => (storedActive.id && profile.id === storedActive.id) || profile.name === storedActive.name
+    ) || { ...storedActive, id: storedActive.id || generateProfileId(storedActive, migrated.profiles.length) };
+  } else {
+    migrated.activeFocusProfile = null;
+  }
+  migrated.trackingExclusions = isPlainObject(data.trackingExclusions) ? { ...data.trackingExclusions } : {};
+  [
+    'trackedData',
+    'dailyDomainData',
+    'dailyCategoryData',
+    'hourlyData',
+    'categoryProductivityRatings',
+    'pomodoroDailyStats',
+    'pomodoroAllTimeStats',
+  ].forEach((field) => {
+    migrated[field] = isPlainObject(data[field]) ? data[field] : defaults[field];
+  });
+  return migrated;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 /**
@@ -186,12 +254,9 @@ function validateSchema(data) {
   }
 
   // Check required arrays
-  const arrayFields = ['categories', 'rules', 'trackedData', 'dailyDomainData', 'dailyCategoryData', 'hourlyData'];
-  arrayFields.forEach((field) => {
-    if (!data[field]) {
-      data[field] = field === 'categories' ? ['Other'] : {};
-    }
-  });
+  if (!Array.isArray(data.categories)) data.categories = ['Other'];
+  if (!Array.isArray(data.rules)) data.rules = [];
+  if (!Array.isArray(data.profiles)) data.profiles = [];
 
   // Check object fields
   const objectFields = [
@@ -199,6 +264,11 @@ function validateSchema(data) {
     'categoryProductivityRatings',
     'pomodoroDailyStats',
     'pomodoroAllTimeStats',
+    'trackedData',
+    'dailyDomainData',
+    'dailyCategoryData',
+    'hourlyData',
+    'trackingExclusions',
   ];
   objectFields.forEach((field) => {
     if (!data[field] || typeof data[field] !== 'object' || Array.isArray(data[field])) {
@@ -221,7 +291,9 @@ if (typeof module !== 'undefined' && module.exports) {
     getDefaultSchema,
     migrateData,
     migrateV1toV2,
+    migrateV2toV3,
     generateRuleId,
+    generateProfileId,
     validateSchema,
   };
 }

@@ -10,15 +10,21 @@
  * @returns {boolean} True if rule is active
  */
 function isRuleActive(rule, date) {
-  if (!rule || !rule.enabled) {
+  if (!rule || rule.enabled === false) {
     return false;
   }
 
   const checkDate = date || new Date();
 
   // Check schedule if present
-  if (rule.schedule && rule.schedule.enabled) {
-    if (!isScheduleActive(rule.schedule, checkDate)) {
+  const nestedSchedule = rule.schedule?.enabled === false ? null : rule.schedule;
+  const flatSchedule =
+    rule.startTime || rule.endTime || rule.days
+      ? { startTime: rule.startTime, endTime: rule.endTime, days: rule.days }
+      : null;
+  const schedule = nestedSchedule || flatSchedule;
+  if (schedule) {
+    if (!isScheduleActive(schedule, checkDate)) {
       return false;
     }
   }
@@ -107,8 +113,10 @@ function validateRule(rule) {
   // Validate type-specific fields
   if (
     rule.type === 'block-domain' ||
+    rule.type === 'block-url' ||
     rule.type === 'block-category' ||
     rule.type === 'limit-domain' ||
+    rule.type === 'limit-url' ||
     rule.type === 'limit-category'
   ) {
     if (!rule.value) errors.push(`${rule.type} rule must have a value`);
@@ -120,6 +128,10 @@ function validateRule(rule) {
     }
     if (typeof rule.limitSeconds !== 'number' || rule.limitSeconds <= 0) {
       errors.push('Limit rule must have a positive limitSeconds');
+    }
+    const matchMode = rule.matchMode || (rule.type.endsWith('-url') ? 'domain' : null);
+    if (rule.type.endsWith('-url') && !['domain', 'domain-subdomains'].includes(matchMode)) {
+      errors.push('URL time limits support domain-based match modes only');
     }
   }
 

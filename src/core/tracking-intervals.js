@@ -15,6 +15,15 @@ function splitIntervalByHour(startTimestamp, endTimestamp) {
   if (startTimestamp >= endTimestamp) return [];
 
   const intervals = [];
+  let elapsedMilliseconds = 0;
+  let attributedSeconds = 0;
+  const attributeSegment = (milliseconds) => {
+    elapsedMilliseconds += milliseconds;
+    const roundedTotal = Math.round(elapsedMilliseconds / TRACKING_MILLISECONDS_PER_SECOND);
+    const seconds = roundedTotal - attributedSeconds;
+    attributedSeconds = roundedTotal;
+    return seconds;
+  };
   const start = new Date(startTimestamp);
   let current = new Date(start);
   current.setMinutes(0, 0, 0);
@@ -24,9 +33,7 @@ function splitIntervalByHour(startTimestamp, endTimestamp) {
     const nextHourStart = new Date(current);
     nextHourStart.setHours(nextHourStart.getHours() + 1);
 
-    const secondsInFirstHour = Math.floor(
-      (Math.min(nextHourStart.getTime(), endTimestamp) - startTimestamp) / TRACKING_MILLISECONDS_PER_SECOND
-    );
+    const secondsInFirstHour = attributeSegment(Math.min(nextHourStart.getTime(), endTimestamp) - startTimestamp);
     if (secondsInFirstHour > 0) {
       intervals.push({
         hour: String(start.getHours()).padStart(2, '0'),
@@ -43,7 +50,7 @@ function splitIntervalByHour(startTimestamp, endTimestamp) {
     nextHourStart.setHours(nextHourStart.getHours() + 1);
 
     const endTime = Math.min(nextHourStart.getTime(), endTimestamp);
-    const secondsInHour = Math.floor((endTime - current.getTime()) / TRACKING_MILLISECONDS_PER_SECOND);
+    const secondsInHour = attributeSegment(endTime - current.getTime());
 
     if (secondsInHour > 0) {
       intervals.push({
@@ -69,6 +76,15 @@ function splitIntervalByDay(startTimestamp, endTimestamp) {
   if (startTimestamp >= endTimestamp) return [];
 
   const intervals = [];
+  let elapsedMilliseconds = 0;
+  let attributedSeconds = 0;
+  const attributeSegment = (milliseconds) => {
+    elapsedMilliseconds += milliseconds;
+    const roundedTotal = Math.round(elapsedMilliseconds / TRACKING_MILLISECONDS_PER_SECOND);
+    const seconds = roundedTotal - attributedSeconds;
+    attributedSeconds = roundedTotal;
+    return seconds;
+  };
   const start = new Date(startTimestamp);
   let current = new Date(start);
   current.setHours(0, 0, 0, 0);
@@ -78,9 +94,7 @@ function splitIntervalByDay(startTimestamp, endTimestamp) {
     const nextDayStart = new Date(current);
     nextDayStart.setDate(nextDayStart.getDate() + 1);
 
-    const secondsInFirstDay = Math.floor(
-      (Math.min(nextDayStart.getTime(), endTimestamp) - startTimestamp) / TRACKING_MILLISECONDS_PER_SECOND
-    );
+    const secondsInFirstDay = attributeSegment(Math.min(nextDayStart.getTime(), endTimestamp) - startTimestamp);
     if (secondsInFirstDay > 0) {
       intervals.push({
         date: getDateString(startTimestamp),
@@ -96,7 +110,7 @@ function splitIntervalByDay(startTimestamp, endTimestamp) {
     nextDayStart.setDate(nextDayStart.getDate() + 1);
 
     const endTime = Math.min(nextDayStart.getTime(), endTimestamp);
-    const secondsInDay = Math.floor((endTime - current.getTime()) / TRACKING_MILLISECONDS_PER_SECOND);
+    const secondsInDay = attributeSegment(endTime - current.getTime());
 
     if (secondsInDay > 0) {
       intervals.push({

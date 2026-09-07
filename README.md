@@ -57,6 +57,8 @@ For more details on this and previous updates, check out the [Releases Page](htt
 - **Current-site action:** Block or unblock the active website directly from the popup.
 - **Focus profiles:** Create local allow-list profiles, start or stop them manually, and keep the active profile visible in the options page.
 - **Weekly insights:** Review local focus score comparisons, top domains, category totals, daily limit periods, and best focus days.
+- **Local goals:** Set daily or weekly targets for productive time, a category, or an exact website domain. Progress stays on-device, resets with the calendar period, and does not block sites or send notifications. Goals are included in backups.
+- **Selective history deletion:** In Settings → Data Management, preview and delete one website's browsing time, an inclusive date range, or both. Rules, assignments, goals, and Tomato Clock sessions are preserved. Legacy hourly charts combine websites, so deleting a website also clears affected days' hourly charts while retaining other websites' daily totals. Deletion updates reports, goal progress, and time-limit usage.
 - **Customizable Block Page:** Personalize the experience when a site is blocked with custom messages, motivational quotes, and control over displayed information.
 - **Data Management:**
   - Export your complete tracking history and settings for backup.

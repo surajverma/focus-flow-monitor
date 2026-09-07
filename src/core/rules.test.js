@@ -30,6 +30,12 @@ describe('shared rule evaluator', () => {
     expect(
       ruleMatchesUrl({ value: 'https://example.com/path', matchMode: 'url-prefix' }, 'https://example.com/path/child')
     ).toBe(true);
+    expect(
+      ruleMatchesUrl({ value: 'example.com/path', matchMode: 'url-prefix' }, 'https://example.com/path/child')
+    ).toBe(true);
+    expect(
+      ruleMatchesUrl({ value: 'https://example.com', matchMode: 'url-prefix' }, 'https://example.com.evil.test/path')
+    ).toBe(false);
   });
 
   test('exception takes precedence over a broad block', () => {
@@ -67,5 +73,27 @@ describe('shared rule evaluator', () => {
     );
     expect(result.blockingRule.id).toBe('specific');
     expect(result.limitRules).toHaveLength(1);
+  });
+
+  test('keeps exceptions associated with their owning rules', () => {
+    const result = evaluateRules(
+      [
+        { id: 'block', type: 'block-url', value: 'example.com', matchMode: 'domain-subdomains' },
+        {
+          id: 'limit',
+          type: 'limit-url',
+          value: 'example.com',
+          matchMode: 'domain-subdomains',
+          exceptions: [{ value: 'https://example.com/allowed', matchMode: 'url-prefix' }],
+        },
+      ],
+      'https://example.com/allowed'
+    );
+    expect(result.blockingRule.id).toBe('block');
+    expect(result.limitRules).toHaveLength(0);
+  });
+
+  test('supports legacy domain rule types', () => {
+    expect(ruleMatchesUrl({ type: 'block-domain', value: 'example.com' }, 'https://example.com')).toBe(true);
   });
 });

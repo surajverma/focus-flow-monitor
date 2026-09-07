@@ -593,9 +593,30 @@ function handleRuleTypeChange() {
     UIElements.addRuleScheduleInputsDiv.style.display = isBlockType ? '' : 'none';
 
     if (isUrlType) UIElements.rulePatternInput.placeholder = 'e.g., badsite.com or *.social.com';
+    const matchMode = document.getElementById('ruleMatchModeSelect');
+    if (matchMode) {
+      Array.from(matchMode.options).forEach((option) => {
+        option.disabled = isLimitType && !['domain', 'domain-subdomains'].includes(option.value);
+      });
+      if (isLimitType && !['domain', 'domain-subdomains'].includes(matchMode.value)) matchMode.value = 'domain';
+    }
   } catch (e) {
     console.error('Error changing rule type view:', e);
   }
+}
+
+function normalizeRuleTargetInput(value, matchMode) {
+  const raw = String(value || '').trim();
+  if (['domain', 'domain-subdomains'].includes(matchMode)) {
+    if (/[/\\?#]/.test(raw.replace(/^\*\./, ''))) return null;
+    const wildcard = raw.startsWith('*.');
+    const domain = normalizeDomain(wildcard ? raw.slice(2) : raw);
+    return domain ? `${wildcard ? '*.' : ''}${domain}` : null;
+  }
+  const candidate = normalizeCandidateUrl(raw);
+  if (!candidate) return null;
+  candidate.hash = '';
+  return candidate.toString();
 }
 
 function handleAddRule() {
@@ -623,20 +644,17 @@ function handleAddRule() {
       days = null;
 
     if (type.includes('-url')) {
-      value = UIElements.rulePatternInput.value.trim();
+      const matchMode = document.getElementById('ruleMatchModeSelect')?.value || 'domain';
+      value = normalizeRuleTargetInput(UIElements.rulePatternInput.value, matchMode);
       if (!value) {
-        displayMessage(ADD_RULE_ERROR_ID, 'Please enter a URL pattern (e.g., example.com or *.example.com).', true);
-        return;
-      }
-      if (typeof isValidDomainPattern === 'function' && !isValidDomainPattern(value)) {
         displayMessage(
           ADD_RULE_ERROR_ID,
-          'Invalid URL pattern. Please use a valid domain (e.g., example.com) or wildcard (e.g., *.example.com). Paths are not allowed.',
+          ['domain', 'domain-subdomains'].includes(matchMode)
+            ? 'Enter a valid domain without a path, query, or fragment.'
+            : 'Enter a valid HTTP/HTTPS URL for exact or prefix matching.',
           true
         );
         return;
-      } else if (typeof isValidDomainPattern !== 'function') {
-        console.warn('isValidDomainPattern function not found, skipping advanced URL validation for adding rule.');
       }
     } else if (type.includes('-category')) {
       value = UIElements.ruleCategorySelect.value;
@@ -677,7 +695,10 @@ function handleAddRule() {
       }
     }
     const exists = AppState.rules.some(
-      (rule) => rule.type === type && rule.value.toLowerCase() === value.toLowerCase()
+      (rule) =>
+        rule.type === type &&
+        rule.value.toLowerCase() === value.toLowerCase() &&
+        (rule.matchMode || 'domain') === (document.getElementById('ruleMatchModeSelect')?.value || 'domain')
     );
     if (exists) {
       displayMessage(ADD_RULE_ERROR_ID, `A rule for this exact type and target ("${value}") already exists.`, true);
@@ -787,7 +808,13 @@ function handleEditRuleClick(event) {
 
   if (isUrlType) UIElements.editRulePatternInput.value = rule.value;
   const editMatchMode = document.getElementById('editRuleMatchModeSelect');
-  if (editMatchMode) editMatchMode.value = rule.matchMode || 'domain';
+  if (editMatchMode) {
+    Array.from(editMatchMode.options).forEach((option) => {
+      option.disabled = isLimitType && !['domain', 'domain-subdomains'].includes(option.value);
+    });
+    editMatchMode.value =
+      isLimitType && !['domain', 'domain-subdomains'].includes(rule.matchMode) ? 'domain' : rule.matchMode || 'domain';
+  }
   if (isCategoryType) {
     if (typeof populateRuleCategorySelect === 'function') populateRuleCategorySelect();
     UIElements.editRuleCategorySelect.value = rule.value;
@@ -813,9 +840,19 @@ function handleEditRuleClick(event) {
       UIElements.editRuleLimitInput.value = 1;
       UIElements.editRuleUnitSelect.value = 'minutes';
     }
+    const editPeriod = document.getElementById('editRulePeriodSelect');
+    if (editPeriod) editPeriod.value = rule.period || 'day';
   } else {
     UIElements.editRuleLimitInput.value = '';
     UIElements.editRuleUnitSelect.value = 'minutes';
+  }
+
+  const exceptionsInput = document.getElementById('editRuleExceptionsInput');
+  if (exceptionsInput) {
+    exceptionsInput.value = (rule.exceptions || [])
+      .map((exception) => (typeof exception === 'string' ? exception : exception.value))
+      .filter(Boolean)
+      .join(', ');
   }
 
   if (isBlockType) {
@@ -860,22 +897,19 @@ function handleSaveChangesClick() {
   const isBlockType = originalRule.type.includes('block-');
 
   if (isUrlType) {
-    const newVal = UIElements.editRulePatternInput.value.trim();
+    const selectedMode =
+      document.getElementById('editRuleMatchModeSelect')?.value || originalRule.matchMode || 'domain';
+    const newVal = normalizeRuleTargetInput(UIElements.editRulePatternInput.value, selectedMode);
     if (!newVal) {
-      alert('Please enter a URL or pattern.');
-      return;
-    }
-    if (typeof isValidDomainPattern === 'function' && !isValidDomainPattern(newVal)) {
       alert(
-        'Invalid URL pattern. Please use a valid domain (e.g., example.com) or wildcard (e.g., *.example.com). Paths are not allowed.'
+        ['domain', 'domain-subdomains'].includes(selectedMode)
+          ? 'Enter a valid domain without a path.'
+          : 'Enter a valid HTTP/HTTPS URL.'
       );
       return;
-    } else if (typeof isValidDomainPattern !== 'function') {
-      console.warn('isValidDomainPattern function not found, skipping advanced URL validation for editing rule.');
     }
     updatedRule.value = newVal;
-    updatedRule.matchMode =
-      document.getElementById('editRuleMatchModeSelect')?.value || originalRule.matchMode || 'domain';
+    updatedRule.matchMode = selectedMode;
   } else if (isCategoryType) {
     const newVal = UIElements.editRuleCategorySelect.value;
     const selOpt = UIElements.editRuleCategorySelect.options[UIElements.editRuleCategorySelect.selectedIndex];
@@ -894,7 +928,28 @@ function handleSaveChangesClick() {
       return;
     }
     updatedRule.limitSeconds = unit === 'hours' ? limitVal * 3600 : limitVal * 60;
+    updatedRule.period = document.getElementById('editRulePeriodSelect')?.value || originalRule.period || 'day';
   }
+
+  const exceptionsInput = document.getElementById('editRuleExceptionsInput');
+  updatedRule.exceptions = String(exceptionsInput?.value || '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const existing = (originalRule.exceptions || []).filter(
+        (exception) => (typeof exception === 'string' ? exception : exception.value) === entry
+      );
+      if (existing.length) return existing;
+      if (/^https?:\/\//i.test(entry)) {
+        const candidate = normalizeCandidateUrl(entry);
+        return candidate ? { value: candidate.toString(), matchMode: 'url-prefix' } : null;
+      }
+      const domain = normalizeRuleTargetInput(entry, 'domain-subdomains');
+      return domain ? { value: domain, matchMode: 'domain-subdomains' } : null;
+    })
+    .flat()
+    .filter(Boolean);
 
   if (isBlockType) {
     const startTime = UIElements.editRuleStartTimeInput.value || null;
@@ -920,7 +975,10 @@ function handleSaveChangesClick() {
 
   const exists = AppState.rules.some(
     (r, i) =>
-      i !== editIndex && r.type === updatedRule.type && r.value.toLowerCase() === updatedRule.value.toLowerCase()
+      i !== editIndex &&
+      r.type === updatedRule.type &&
+      r.value.toLowerCase() === updatedRule.value.toLowerCase() &&
+      (r.matchMode || 'domain') === (updatedRule.matchMode || 'domain')
   );
   if (exists) {
     alert(`Another rule for this exact type and target ("${updatedRule.value}") already exists.`);
@@ -1063,8 +1121,10 @@ async function handleExportData() {
       STORAGE_KEY_BLOCK_PAGE_USER_QUOTES,
       STORAGE_KEY_POMODORO_SETTINGS,
       'profiles',
+      'localGoals',
       'activeFocusProfile',
       'trackingExclusions',
+      'lastBackupAt',
       'schemaVersion',
     ];
     const storedData = await browser.storage.local.get(keysToExport);
@@ -1092,9 +1152,13 @@ async function handleExportData() {
           totalWorkSessionsCompleted: 0,
           totalTimeFocused: 0,
         };
+      else if (key === 'profiles' || key === 'localGoals')
+        dataToExport[key] = Array.isArray(storedData[key]) ? storedData[key] : [];
+      else if (key === 'activeFocusProfile') dataToExport[key] = storedData[key] || null;
+      else if (key === 'lastBackupAt') dataToExport[key] = storedData[key] || null;
       else if (key.startsWith('blockPage_')) {
-        if (key.includes('show')) dataToExport[key] = storedData[key] ?? true;
-        else if (key === STORAGE_KEY_BLOCK_PAGE_SHOW_QUOTE) dataToExport[key] = storedData[key] ?? false;
+        if (key === STORAGE_KEY_BLOCK_PAGE_SHOW_QUOTE) dataToExport[key] = storedData[key] ?? false;
+        else if (key.includes('show')) dataToExport[key] = storedData[key] ?? true;
         else if (key === STORAGE_KEY_BLOCK_PAGE_USER_QUOTES) dataToExport[key] = storedData[key] || [];
         else dataToExport[key] = storedData[key] || '';
       } else dataToExport[key] = storedData[key] || {};
@@ -1113,6 +1177,10 @@ async function handleExportData() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      const exportedAt = new Date().toISOString();
+      await browser.storage.local.set({ lastBackupAt: exportedAt });
+      const backupStatus = document.getElementById('backupStatus');
+      if (backupStatus) backupStatus.textContent = 'Last backup exported today.';
     } else {
       alert('Data export might not be fully supported by your browser.');
     }
@@ -1140,9 +1208,15 @@ function handleImportFileChange(event) {
       importedData = JSON.parse(e.target.result);
       const candidate = { version: importedData.version || 1, ...importedData };
       const validation = typeof validateBackup === 'function' ? validateBackup(candidate) : { valid: true };
-      if (!validation.valid && importedData.version) throw new Error(validation.errors.join('; '));
+      if (!validation.valid) throw new Error(validation.errors.join('; '));
       importedData = typeof sanitizeImportedData === 'function' ? sanitizeImportedData(candidate) : candidate;
       if (typeof migrateData === 'function') importedData = migrateData(importedData);
+      if (!importedData.pomodoroStatsDaily && importedData.pomodoroDailyStats) {
+        importedData.pomodoroStatsDaily = importedData.pomodoroDailyStats;
+      }
+      if (!importedData.pomodoroStatsAllTime && importedData.pomodoroAllTimeStats) {
+        importedData.pomodoroStatsAllTime = importedData.pomodoroAllTimeStats;
+      }
       const requiredKeys = [
         'trackedData',
         'categories',
@@ -1179,6 +1253,10 @@ function handleImportFileChange(event) {
       importedData[STORAGE_KEY_POMODORO_SETTINGS] = {
         ...pomodoroDefaults,
         ...(importedData[STORAGE_KEY_POMODORO_SETTINGS] || {}),
+        durations: {
+          ...pomodoroDefaults.durations,
+          ...(importedData[STORAGE_KEY_POMODORO_SETTINGS]?.durations || {}),
+        },
       };
 
       await browser.storage.local.set(importedData);

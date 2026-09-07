@@ -41,6 +41,7 @@ describe('domain-matcher', () => {
     test('handles edge cases', () => {
       expect(extractAndNormalizeHostname('')).toBeNull();
       expect(extractAndNormalizeHostname('not-a-url')).toBeNull();
+      expect(extractAndNormalizeHostname('ftp://example.com/file')).toBeNull();
     });
   });
 
@@ -76,6 +77,7 @@ describe('domain-matcher', () => {
 
     test('does not match non-prefixes', () => {
       expect(urlMatchesPrefix('https://example.com/v2/api', 'https://example.com/v1/api')).toBe(false);
+      expect(urlMatchesPrefix('https://example.com.evil.test/api', 'https://example.com')).toBe(false);
     });
 
     test('handles rejects extension URLs', () => {

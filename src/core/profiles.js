@@ -17,11 +17,23 @@ function isProfileAllowlisted(profile, url, category) {
   const candidate = new URL(url);
   const host = candidate.hostname.toLowerCase().replace(/^www\./, '');
   return (profile.allowedDomains || []).some((target) => {
-    const normalized = String(target)
+    const rawTarget = String(target).trim();
+    if (!rawTarget) return false;
+    if (/^https?:\/\//i.test(rawTarget)) {
+      try {
+        const targetUrl = new URL(rawTarget);
+        const candidateUrl = candidate.toString().replace(/\/$/, '');
+        const normalizedTarget = targetUrl.toString().replace(/\/$/, '');
+        return candidate.origin === targetUrl.origin && candidateUrl.startsWith(normalizedTarget);
+      } catch (_error) {
+        return false;
+      }
+    }
+    const normalized = rawTarget
       .toLowerCase()
       .replace(/^www\./, '')
       .replace(/^\*\./, '');
-    return host === normalized || host.endsWith(`.${normalized}`) || candidate.toString().startsWith(target);
+    return host === normalized || host.endsWith(`.${normalized}`);
   });
 }
 

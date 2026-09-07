@@ -41,7 +41,7 @@ function handleBlockingRequest(requestDetails) {
     if (profileIsActive && !isProfileAllowlisted(activeProfile, requestedUrl, determinedCategory)) {
       const blockContext =
         typeof createBlockContext === 'function'
-          ? createBlockContext(requestedDomain, 'profile', {
+          ? createBlockContext(requestedUrl, 'profile', {
               ruleName: activeProfile.name,
               profileId: activeProfile.id,
             })
@@ -59,17 +59,13 @@ function handleBlockingRequest(requestDetails) {
   }
 
   const now = new Date();
-  const activeRules = currentRules.filter((rule) => {
-    if (!rule.schedule && !(rule.startTime || rule.endTime || rule.days)) return true;
-    const schedule = rule.schedule || { days: rule.days, startTime: rule.startTime, endTime: rule.endTime };
-    return isScheduleActive(schedule, now);
-  });
+  const activeRules = currentRules.filter((rule) => rule?.type?.startsWith('block-') && isRuleActive(rule, now));
   const evaluation = evaluateRules(activeRules, requestedUrl, { category: determinedCategory });
   if (evaluation.blockingRule) {
     const rule = evaluation.blockingRule;
     const blockContext =
       typeof createBlockContext === 'function'
-        ? createBlockContext(requestedDomain, 'rule', {
+        ? createBlockContext(requestedUrl, 'rule', {
             ruleId: rule.id,
             ruleType: rule.type,
             ruleName: rule.value,

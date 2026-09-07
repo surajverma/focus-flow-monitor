@@ -852,14 +852,20 @@ body {
   color: var(--popup-text-secondary);
   flex: 0 1 auto;
   font-size: 0.82rem;
-  max-width: 120px;
+  max-width: 150px;
   min-width: 0;
 }
 
 .current-site-category-label {
+  background: var(--popup-options-btn-bg);
+  border: 1px solid var(--popup-options-btn-border);
+  border-radius: 999px;
+  color: var(--popup-text-primary);
   display: block;
-  max-width: 115px;
+  font-weight: 600;
+  max-width: 145px;
   overflow: hidden;
+  padding: 4px 9px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
