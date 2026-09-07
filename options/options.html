@@ -1,30 +1,43 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="options.css" />
     <title>Focus Flow Monitor - Stats & Settings</title>
   </head>
   <body>
     <div class="container">
-      <h1>Focus Flow Monitor - Stats & Settings</h1>
+      <header class="workspace-heading">
+        <div>
+          <span class="feature-eyebrow">A LITTLE MORE INTENTION, EVERY DAY</span>
+          <h1>Focus Flow Monitor</h1>
+          <p>Your time, your focus, your rules.</p>
+        </div>
+        <span class="local-badge">Private by design · Stored on this device</span>
+      </header>
 
       <div class="tabs-container">
         <div class="tab-nav" role="tablist" aria-label="Options sections">
           <button class="tab-link active" data-tab="dashboardTab" role="tab" aria-selected="true">📊 Dashboard</button>
+          <button class="tab-link" data-tab="insightsTab" role="tab" aria-selected="false">
+            📈 Insights & Profiles
+          </button>
           <button class="tab-link" data-tab="contentControlTab" role="tab" aria-selected="false">
             🚦 Content Control
           </button>
           <button class="tab-link" data-tab="productivityTab" role="tab" aria-selected="false">💪 Productivity</button>
-          <button class="tab-link" data-tab="insightsTab" role="tab" aria-selected="false">
-            📈 Insights & Profiles
-          </button>
           <button class="tab-link" data-tab="generalSettingsTab" role="tab" aria-selected="false">⚙️ Settings</button>
         </div>
 
         <div id="dashboardTab" class="tab-content active">
           <section id="stats-display-section">
-            <h2>Statistics Overview</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">THE BIG PICTURE</span>
+                <h2>Statistics Overview</h2>
+              </div>
+            </div>
             <div class="stats-controls">
               <div>
                 <label for="dateRangeSelect">Select Period:</label>
@@ -140,7 +153,12 @@
 
         <div id="contentControlTab" class="tab-content">
           <section id="categories-section">
-            <h2>Website Categories</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">GIVE YOUR BROWSING CONTEXT</span>
+                <h2>Website Categories</h2>
+              </div>
+            </div>
             <div class="category-manage">
               <h3>Manage Categories</h3>
               <div class="form-inline">
@@ -188,7 +206,12 @@
           </section>
           <hr class="tab-section-divider" />
           <section id="blocking-section">
-            <h2>Site Blocking & Time Limiting</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">MAKE SPACE FOR WHAT MATTERS</span>
+                <h2>Site Blocking & Time Limiting</h2>
+              </div>
+            </div>
             <p>
               Permanently block access, set calendar-day, calendar-week, or calendar-month limits, or schedule blocks
               for specific websites or categories.
@@ -324,7 +347,13 @@
 
         <div id="productivityTab" class="tab-content">
           <section id="productivity-settings-section">
-            <h2>Focus Score Settings</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">DEFINE WHAT FOCUS MEANS TO YOU</span>
+                <h2>Focus Score Settings</h2>
+              </div>
+              <span class="local-badge">Changes save automatically</span>
+            </div>
             <p>
               Rate your categories to calculate your Focus Score (% of time spent on 'Productive' activities). Changes
               are saved automatically.
@@ -335,7 +364,12 @@
           </section>
           <hr class="tab-section-divider" />
           <section id="pomodoro-settings-section">
-            <h2>Tomato Clock Settings</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">FIND YOUR RHYTHM</span>
+                <h2>Tomato Clock Settings</h2>
+              </div>
+            </div>
             <div class="form-row">
               <div class="form-group form-group-half">
                 <label for="pomodoroWorkDuration">Work Duration (minutes):</label>
@@ -405,7 +439,12 @@
 
         <div id="generalSettingsTab" class="tab-content">
           <section id="tracking-settings-section">
-            <h2>Tracking Settings</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">YOU ARE IN CONTROL</span>
+                <h2>Tracking Settings</h2>
+              </div>
+            </div>
             <div class="form-group">
               <label for="idleThresholdSelect">Consider inactive after:</label>
               <select id="idleThresholdSelect">
@@ -418,9 +457,8 @@
               </select>
               <p class="setting-description">
                 Choose how long without mouse or keyboard activity before tracking pauses. Longer times help track
-                passive viewing (like videos) but may inflate totals if you walk away. "Never" disables idle checking. I
-                chose 30 minutes as default as I believe that is a sweet spot, as even when I (and few of my friend I
-                asked to) are/am watching videos, They/I tend to do an interaction mostly in about 30 minutes.
+                passive viewing (like videos) but may inflate totals if you walk away. The default is 30 minutes.
+                "Never" disables idle checking.
               </p>
             </div>
             <div class="form-group">
@@ -441,7 +479,12 @@
           </section>
           <hr class="tab-section-divider" />
           <section id="data-management-section">
-            <h2>Data Management</h2>
+            <div class="feature-section-heading">
+              <div>
+                <span class="feature-eyebrow">YOUR DATA STAYS YOURS</span>
+                <h2>Data Management</h2>
+              </div>
+            </div>
             <p>
               Export your tracking history and settings, or import a previously exported backup file. Importing will
               overwrite current data.
