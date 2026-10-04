@@ -32,7 +32,7 @@
       "48": "icons/icon-48.png"
     },
     "default_popup": "popup/popup.html",
-    "default_title": "FocusFlow Monitor"
+    "default_title": "Focus Flow Monitor"
   },
   "options_ui": {
     "page": "options/options.html",

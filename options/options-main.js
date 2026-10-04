@@ -432,6 +432,10 @@ async function updatePomodoroPermissionStatusDisplay() {
     } else {
       UIElements.pomodoroNotificationPermissionStatus.textContent = '(Permission: Not Granted)';
       UIElements.pomodoroNotificationPermissionStatus.className = 'permission-status-text denied';
+      // Notifications can't be on without the permission, so don't show the box as ticked.
+      if (UIElements.pomodoroEnableNotificationsCheckbox) {
+        UIElements.pomodoroEnableNotificationsCheckbox.checked = false;
+      }
     }
   } catch (err) {
     console.error('Error checking notification permissions:', err);
@@ -440,8 +444,8 @@ async function updatePomodoroPermissionStatusDisplay() {
   }
 }
 
-function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
-  // Added parameter
+// preserveView keeps the selected breakdown category and list pages (used after an inline category assignment).
+function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false, { preserveView = false } = {}) {
   if (!UIElements.dateRangeSelect) {
     console.warn('Date range select element not found for UI update.');
     return;
@@ -475,8 +479,11 @@ function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
     loader.style.display = 'none';
   }
 
-  AppState.currentBreakdownIdentifier = null;
-  if (UIElements.breakdownCategorySelect) UIElements.breakdownCategorySelect.value = '';
+  const savedDomainPage = AppState.domainCurrentPage;
+  if (!preserveView) {
+    AppState.currentBreakdownIdentifier = null;
+    if (UIElements.breakdownCategorySelect) UIElements.breakdownCategorySelect.value = '';
+  }
 
   setTimeout(() => {
     let domainData = {},
@@ -495,6 +502,10 @@ function updateDisplayForSelectedRangeUI(isDuringInitialLoad = false) {
         if (typeof highlightSelectedCalendarDay === 'function') highlightSelectedCalendarDay(AppState.selectedDateStr);
       }
       updateStatsDisplay(domainData, categoryData, label, AppState.selectedDateStr, isRangeView);
+      if (preserveView) {
+        AppState.domainCurrentPage = savedDomainPage;
+        updateDomainDisplayAndPagination();
+      }
       // Update insights banner with current stats
       updateInsightsBanner(label, domainData, categoryData);
 
@@ -599,13 +610,13 @@ function updateStatsDisplay(
       UIElements.totalTimeForRangeValue &&
       UIElements.averageTimeForRange
     ) {
+      let totalSecondsForRange = 0;
+      for (const domain in currentDomainData) {
+        totalSecondsForRange += currentDomainData[domain];
+      }
+      UIElements.totalTimeForRangeValue.textContent =
+        typeof formatTime === 'function' ? formatTime(totalSecondsForRange, true) : totalSecondsForRange + 's';
       if (isRangeView) {
-        let totalSecondsForRange = 0;
-        for (const domain in currentDomainData) {
-          totalSecondsForRange += currentDomainData[domain];
-        }
-        UIElements.totalTimeForRangeValue.textContent =
-          typeof formatTime === 'function' ? formatTime(totalSecondsForRange, true) : totalSecondsForRange + 's';
         let numberOfDaysInRange = 0;
         let averageTimeText;
         const selectedRangeValue = UIElements.dateRangeSelect ? UIElements.dateRangeSelect.value : '';
@@ -640,17 +651,17 @@ function updateStatsDisplay(
           }
         }
         UIElements.averageTimeForRange.textContent = averageTimeText;
-
-        const periodSpanInTotalLabel = UIElements.totalTimeForRangeLabel.querySelector('.stats-period');
-        if (periodSpanInTotalLabel) {
-          periodSpanInTotalLabel.textContent = label;
-        } else {
-          UIElements.totalTimeForRangeLabel.textContent = `Total Time Online (${label})`;
-        }
-        UIElements.totalTimeForRangeContainer.style.display = 'block';
       } else {
-        UIElements.totalTimeForRangeContainer.style.display = 'none';
+        UIElements.averageTimeForRange.textContent = 'Time spent on websites with the browser in focus.';
       }
+
+      const periodSpanInTotalLabel = UIElements.totalTimeForRangeLabel.querySelector('.stats-period');
+      if (periodSpanInTotalLabel) {
+        periodSpanInTotalLabel.textContent = label;
+      } else {
+        UIElements.totalTimeForRangeLabel.textContent = `Browsing Time (${label})`;
+      }
+      UIElements.totalTimeForRangeContainer.style.display = 'block';
     }
 
     const chartDataView = AppState.currentChartViewMode === 'domain' ? currentDomainData : currentCategoryData;
@@ -1321,7 +1332,7 @@ function computeInsightsMessages(label, domainData, categoryData) {
 
     // Focus score nudge
     if (focus && typeof focus.score === 'number') {
-      if (focus.score < 50) messages.push(`Focus Score ${focus.score}%. Try a few Pomodoros to raise it.`);
+      if (focus.score < 50) messages.push(`Focus Score ${focus.score}%. Try a few Tomato Clock sessions to raise it.`);
       else if (focus.score >= 80) messages.push(`Great job! Focus Score ${focus.score}% — keep the streak.`);
     }
 

@@ -165,8 +165,7 @@ async function loadData({ clearTrackingState = true } = {}) {
 }
 
 async function performSave() {
-  // TEMPORARY: More direct logging for entry
-  console.log('[Storage performSave] ****** ENTERED performSave() ******');
+  console.log('[Storage performSave] Saving state.');
 
   // Simpler check for now to ensure it proceeds if called directly
   if (FocusFlowState.isSaving) {
@@ -179,18 +178,6 @@ async function performSave() {
 
   FocusFlowState.isSaving = true;
   console.log('[Storage performSave] Set isSaving to true.');
-
-  // Create a snapshot of the stats to be saved for logging
-  const statsToSaveSnapshot = {
-    daily: JSON.parse(JSON.stringify(FocusFlowState.pomodoroDailyStats)), // Deep copy for logging
-    allTime: JSON.parse(JSON.stringify(FocusFlowState.pomodoroAllTimeStats)), // Deep copy for logging
-  };
-  console.log('[Storage performSave] Pomodoro stats snapshot for saving:', statsToSaveSnapshot);
-  console.log('[Storage performSave] Current FocusFlowState.pomodoroDailyStats:', FocusFlowState.pomodoroDailyStats);
-  console.log(
-    '[Storage performSave] Current FocusFlowState.pomodoroAllTimeStats:',
-    FocusFlowState.pomodoroAllTimeStats
-  );
 
   const stateToSave = {
     trackedData: FocusFlowState.trackedData,

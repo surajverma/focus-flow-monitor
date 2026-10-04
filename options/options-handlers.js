@@ -1165,7 +1165,7 @@ async function handleExportData() {
     });
     const jsonString = JSON.stringify(dataToExport, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = getCurrentDateString(); // local date, so the file name matches the user's day
     const filename = `focusflow_backup_${dateStr}.ffm`;
     const link = document.createElement('a');
     if (link.download !== undefined) {
@@ -1197,7 +1197,7 @@ function handleImportFileChange(event) {
   const file = event.target.files ? event.target.files[0] : null;
   if (!file) return;
   if (!file.name || !file.name.toLowerCase().endsWith('.ffm')) {
-    alert('Import failed: Please select a valid FocusFlow backup (.ffm) file.');
+    alert('Import failed: Please select a valid Focus Flow Monitor backup (.ffm) file.');
     event.target.value = null;
     return;
   }
@@ -1412,7 +1412,7 @@ async function handleSavePomodoroSettings() {
       !UIElements.pomodoroLongBreakDurationInput ||
       !UIElements.pomodoroSessionsInput
     ) {
-      displayMessage(POMODORO_SETTINGS_ERROR_ID, 'UI elements for Pomodoro settings are missing.', true);
+      displayMessage(POMODORO_SETTINGS_ERROR_ID, 'UI elements for Tomato Clock settings are missing.', true);
       return;
     }
 
@@ -1604,10 +1604,26 @@ async function handleInlineAssignCategoryForDomain(domain, newCategory, oldCateg
       });
     }
 
-    // Refresh dashboard UI for current range/date
-    if (typeof updateDisplayForSelectedRangeUI === 'function') updateDisplayForSelectedRangeUI(false);
+    // Refresh dashboard UI for current range/date, keeping the user's place in the lists
+    if (typeof updateDisplayForSelectedRangeUI === 'function') {
+      updateDisplayForSelectedRangeUI(false, { preserveView: true });
+    }
+    showDashboardAssignStatus(`${domain} moved to ${newCategory}.`);
   } catch (e) {
     console.error('[Inline Assign] Failed to assign category for domain:', domain, e);
-    alert('Failed to assign category. Please try again.');
+    showDashboardAssignStatus('Could not save the category. Please try again.', true);
   }
+}
+
+let dashboardAssignStatusTimer = null;
+function showDashboardAssignStatus(message, isError = false) {
+  const statusEl = document.getElementById('dashboardAssignStatus');
+  if (!statusEl) return;
+  clearTimeout(dashboardAssignStatusTimer);
+  statusEl.textContent = message;
+  statusEl.classList.toggle('error', isError);
+  statusEl.hidden = false;
+  dashboardAssignStatusTimer = setTimeout(() => {
+    statusEl.hidden = true;
+  }, 4000);
 }

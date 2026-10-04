@@ -1,12 +1,16 @@
 // --- UI Population/Display Functions ---
 
+// Chart slices that group the smallest items. Named so they can't be confused with the "Other" category.
+const CHART_MORE_WEBSITES_LABEL = 'More websites';
+const CHART_MORE_CATEGORIES_LABEL = 'More categories';
+
 function displayDomainTime(itemsToDisplay) {
   if (!UIElements.detailedTimeList) return;
   UIElements.detailedTimeList.replaceChildren();
   if (!itemsToDisplay || itemsToDisplay.length === 0) {
     const li = document.createElement('li');
     li.textContent =
-      AppState.fullDomainDataSorted.length === 0 ? 'No domain data for this period.' : 'No domains on this page.';
+      AppState.fullDomainDataSorted.length === 0 ? 'No website data for this period.' : 'No websites on this page.';
     UIElements.detailedTimeList.appendChild(li);
     return;
   }
@@ -15,64 +19,68 @@ function displayDomainTime(itemsToDisplay) {
     const domainSpan = document.createElement('span');
     domainSpan.textContent = item.domain;
     domainSpan.className = 'domain';
+    domainSpan.title = item.domain;
     const timeSpan = document.createElement('span');
     timeSpan.textContent = formatTime(item.time, true); // From utils.js
     timeSpan.className = 'time';
     li.appendChild(domainSpan);
     li.appendChild(timeSpan);
 
-    // Inline category info or assignment (for domains currently in 'Other')
-    try {
-      if (
-        typeof getCategoryForDomain === 'function' &&
-        AppState &&
-        AppState.categoryAssignments &&
-        AppState.categories
-      ) {
-        const currentCategory = getCategoryForDomain(item.domain, AppState.categoryAssignments, AppState.categories);
-
-        const controlsContainer = document.createElement('span');
-        controlsContainer.className = 'inline-category-control';
-
-        if (currentCategory && currentCategory !== 'Other') {
-          const catBadge = document.createElement('span');
-          catBadge.className = 'inline-category-badge';
-          catBadge.textContent = currentCategory;
-          controlsContainer.appendChild(catBadge);
-        } else {
-          // Build a compact select to assign a category quickly
-          const select = document.createElement('select');
-          select.className = 'inline-category-select';
-          const defaultOpt = document.createElement('option');
-          defaultOpt.value = '';
-          defaultOpt.textContent = 'Assign category…';
-          select.appendChild(defaultOpt);
-          // Populate with categories (excluding 'Other' to encourage classification)
-          AppState.categories
-            .filter((c) => c && c !== 'Other')
-            .forEach((cat) => {
-              const opt = document.createElement('option');
-              opt.value = cat;
-              opt.textContent = cat;
-              select.appendChild(opt);
-            });
-
-          select.addEventListener('change', (e) => {
-            const chosen = e.target.value;
-            if (!chosen) return;
-            if (typeof handleInlineAssignCategoryForDomain === 'function') {
-              handleInlineAssignCategoryForDomain(item.domain, chosen, currentCategory || 'Other');
-            }
-          });
-          controlsContainer.appendChild(select);
-        }
-        li.appendChild(controlsContainer);
-      }
-    } catch (err) {
-      console.warn('[UI] Error building inline category assign control:', err);
-    }
+    const categoryControl = buildInlineCategoryControl(item.domain);
+    if (categoryControl) li.appendChild(categoryControl);
     UIElements.detailedTimeList.appendChild(li);
   });
+}
+
+// Category badge for categorized websites, or a quick "Assign category…" dropdown for websites in 'Other'.
+function buildInlineCategoryControl(domain) {
+  try {
+    if (typeof getCategoryForDomain !== 'function' || !AppState?.categoryAssignments || !AppState?.categories) {
+      return null;
+    }
+    const currentCategory = getCategoryForDomain(domain, AppState.categoryAssignments, AppState.categories);
+    const controlsContainer = document.createElement('span');
+    controlsContainer.className = 'inline-category-control';
+
+    if (currentCategory && currentCategory !== 'Other') {
+      const catBadge = document.createElement('span');
+      catBadge.className = 'inline-category-badge';
+      catBadge.textContent = currentCategory;
+      catBadge.title = currentCategory;
+      controlsContainer.appendChild(catBadge);
+      return controlsContainer;
+    }
+
+    const select = document.createElement('select');
+    select.className = 'inline-category-select';
+    select.setAttribute('aria-label', `Assign a category to ${domain}`);
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = 'Assign category…';
+    select.appendChild(defaultOpt);
+    // Populate with categories (excluding 'Other' to encourage classification)
+    AppState.categories
+      .filter((c) => c && c !== 'Other')
+      .forEach((cat) => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        select.appendChild(opt);
+      });
+
+    select.addEventListener('change', (e) => {
+      const chosen = e.target.value;
+      if (!chosen) return;
+      if (typeof handleInlineAssignCategoryForDomain === 'function') {
+        handleInlineAssignCategoryForDomain(domain, chosen, currentCategory || 'Other');
+      }
+    });
+    controlsContainer.appendChild(select);
+    return controlsContainer;
+  } catch (err) {
+    console.warn('[UI] Error building inline category assign control:', err);
+    return null;
+  }
 }
 
 function displayCategoryTime(dataToDisplay) {
@@ -201,7 +209,7 @@ function populateCategorySelect() {
     UIElements.breakdownCategorySelect.replaceChildren();
     const defaultBreakdownOption = document.createElement('option');
     defaultBreakdownOption.value = '';
-    defaultBreakdownOption.textContent = '-- Select Category --';
+    defaultBreakdownOption.textContent = 'Choose a category';
     UIElements.breakdownCategorySelect.appendChild(defaultBreakdownOption);
   }
 
@@ -586,14 +594,14 @@ function renderChart(data, periodLabel = 'Selected Period', viewMode = 'domain')
       .map(([n, t]) => ({ name: n, time: t }))
       .filter((i) => i.time > 0.1)
       .sort((a, b) => b.time - a.time);
-    otherLabel = 'Other Categories';
+    otherLabel = CHART_MORE_CATEGORIES_LABEL;
   } else {
     // domain view
     sortedData = Object.entries(data)
       .map(([n, t]) => ({ name: n, time: t }))
       .filter((i) => i.time > 0.1)
       .sort((a, b) => b.time - a.time);
-    otherLabel = 'Other Domains';
+    otherLabel = CHART_MORE_WEBSITES_LABEL;
   }
   if (sortedData.length === 0) {
     AppState.tempChartOtherDomainsData = []; // Clear other domains data
@@ -618,7 +626,7 @@ function renderChart(data, periodLabel = 'Selected Period', viewMode = 'domain')
         // Only populate for domain view
         AppState.tempChartOtherDomainsData = otherSliceData;
         console.log(
-          '[RenderChart] Stored tempChartOtherDomainsData for "Other Domains" slice:',
+          '[RenderChart] Stored tempChartOtherDomainsData for "More websites" slice:',
           JSON.parse(JSON.stringify(AppState.tempChartOtherDomainsData))
         );
       }
@@ -676,7 +684,7 @@ function renderChart(data, periodLabel = 'Selected Period', viewMode = 'domain')
                   const tooltipItem = tooltipItems[0];
                   const label = tooltipItem.label;
 
-                  if (currentViewMode === 'category' && label !== 'Other Categories') {
+                  if (currentViewMode === 'category' && label !== CHART_MORE_CATEGORIES_LABEL) {
                     const categoryName = label;
                     const { domainData: currentPeriodDomainData } = getFilteredDataForRange(
                       UIElements.dateRangeSelect.value || AppState.selectedDateStr,
@@ -703,7 +711,7 @@ function renderChart(data, periodLabel = 'Selected Period', viewMode = 'domain')
                     }
                   } else if (
                     currentViewMode === 'domain' &&
-                    label === 'Other Domains' &&
+                    label === CHART_MORE_WEBSITES_LABEL &&
                     AppState.tempChartOtherDomainsData &&
                     AppState.tempChartOtherDomainsData.length > 0
                   ) {
@@ -729,15 +737,15 @@ function renderChart(data, periodLabel = 'Selected Period', viewMode = 'domain')
             const label = chart.data.labels[index];
             console.log(`[Chart onClick] Clicked: ${label}, Current View: ${AppState.currentChartViewMode}`);
 
-            if (label === 'Other Domains' && AppState.currentChartViewMode === 'domain') {
-              console.log("[Chart onClick] 'Other Domains' slice clicked.");
+            if (label === CHART_MORE_WEBSITES_LABEL && AppState.currentChartViewMode === 'domain') {
+              console.log("[Chart onClick] 'More websites' slice clicked.");
               if (typeof handleChartOtherDomainsRequest === 'function') {
                 handleChartOtherDomainsRequest();
               }
             } else if (AppState.currentChartViewMode === 'category') {
               const categoryName = label;
               console.log(`[Chart onClick] Category slice '${categoryName}' clicked.`);
-              if (categoryName && categoryName !== 'Other Categories') {
+              if (categoryName && categoryName !== CHART_MORE_CATEGORIES_LABEL) {
                 if (typeof handleCategoryBreakdownRequest === 'function') {
                   handleCategoryBreakdownRequest(categoryName);
                 }
@@ -1053,11 +1061,14 @@ function updateItemDetailDisplay(isInitialCall = false) {
     /^\d{4}-\d{2}-\d{2}$/.test(AppState.selectedDateStr) && UIElements.dateRangeSelect.value === '';
   const { domainData: currentPeriodDomainData } = getFilteredDataForRange(currentDashboardPeriodValue, isSpecificDate);
 
+  let hintText = '';
   if (AppState.currentBreakdownIdentifier === null) {
-    titleBase = `Breakdown: Other Chart Domains`;
     dataForBreakdownList = [...AppState.tempChartOtherDomainsData].sort((a, b) => b.time - a.time);
-    if (dataForBreakdownList.length === 0) {
-      titleBase = "Details for 'Other Domains' (from Chart)";
+    if (dataForBreakdownList.length > 0) {
+      titleBase = CHART_MORE_WEBSITES_LABEL;
+      hintText = 'Websites grouped together in the chart because they have less tracked time.';
+    } else {
+      titleBase = 'Websites by Category';
     }
   } else if (typeof AppState.currentBreakdownIdentifier === 'string') {
     const categoryName = AppState.currentBreakdownIdentifier;
@@ -1083,16 +1094,20 @@ function updateItemDetailDisplay(isInitialCall = false) {
   }
 
   UIElements.itemDetailTitle.textContent = `${titleBase} (${currentPeriodLabel})`;
+  if (UIElements.itemDetailHint) {
+    UIElements.itemDetailHint.textContent = hintText;
+    UIElements.itemDetailHint.hidden = !hintText;
+  }
   UIElements.itemDetailList.innerHTML = '';
 
   if (dataForBreakdownList.length === 0) {
     const li = document.createElement('li');
-    if (AppState.currentBreakdownIdentifier === null && AppState.tempChartOtherDomainsData.length === 0) {
-      li.textContent = 'No "Other Domains" data from the current chart view, or this slice was not present/clicked.';
-    } else if (typeof AppState.currentBreakdownIdentifier === 'string' && !AppState.currentBreakdownIdentifier) {
-      li.textContent = 'Please select a category to see its website breakdown.';
+    if (!AppState.currentBreakdownIdentifier) {
+      li.textContent = 'Choose a category to see its websites.';
+    } else if (AppState.currentBreakdownIdentifier === 'Other') {
+      li.textContent = 'All websites in this period are categorized.';
     } else {
-      li.textContent = 'No specific items to display for this selection.';
+      li.textContent = 'No websites in this category for this period.';
     }
     UIElements.itemDetailList.appendChild(li);
     if (UIElements.itemDetailPagination) UIElements.itemDetailPagination.style.display = 'none';
@@ -1110,6 +1125,7 @@ function updateItemDetailDisplay(isInitialCall = false) {
       const nameSpan = document.createElement('span');
       nameSpan.textContent = item.name;
       nameSpan.className = 'domain';
+      nameSpan.title = item.name;
 
       const timeSpan = document.createElement('span');
       timeSpan.textContent = formatTime(item.time, true);
@@ -1117,56 +1133,8 @@ function updateItemDetailDisplay(isInitialCall = false) {
 
       li.appendChild(nameSpan);
       li.appendChild(timeSpan);
-      // Inline category info or assignment (for domains currently in 'Other')
-      try {
-        if (
-          typeof getCategoryForDomain === 'function' &&
-          AppState &&
-          AppState.categoryAssignments &&
-          AppState.categories
-        ) {
-          const currentCategory = getCategoryForDomain(item.name, AppState.categoryAssignments, AppState.categories);
-
-          const controlsContainer = document.createElement('span');
-          controlsContainer.className = 'inline-category-control';
-
-          if (currentCategory && currentCategory !== 'Other') {
-            const catBadge = document.createElement('span');
-            catBadge.className = 'inline-category-badge';
-            catBadge.textContent = currentCategory;
-            controlsContainer.appendChild(catBadge);
-          } else {
-            // Build a compact select to assign a category quickly
-            const select = document.createElement('select');
-            select.className = 'inline-category-select';
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = 'Assign category…';
-            select.appendChild(defaultOpt);
-            // Populate with categories (excluding 'Other' to encourage classification)
-            AppState.categories
-              .filter((c) => c && c !== 'Other')
-              .forEach((cat) => {
-                const opt = document.createElement('option');
-                opt.value = cat;
-                opt.textContent = cat;
-                select.appendChild(opt);
-              });
-
-            select.addEventListener('change', (e) => {
-              const chosen = e.target.value;
-              if (!chosen) return;
-              if (typeof handleInlineAssignCategoryForDomain === 'function') {
-                handleInlineAssignCategoryForDomain(item.name, chosen, currentCategory || 'Other');
-              }
-            });
-            controlsContainer.appendChild(select);
-          }
-          li.appendChild(controlsContainer);
-        }
-      } catch (err) {
-        console.warn('[UI] Error building inline category assign control (item detail):', err);
-      }
+      const categoryControl = buildInlineCategoryControl(item.name);
+      if (categoryControl) li.appendChild(categoryControl);
       UIElements.itemDetailList.appendChild(li);
     });
 

@@ -203,6 +203,7 @@ function queryUIElements() {
   // START: Updated UI element references for Breakdown Details Section
   UIElements.itemDetailSection = document.getElementById('itemDetailSection');
   UIElements.itemDetailTitle = document.getElementById('itemDetailTitle');
+  UIElements.itemDetailHint = document.getElementById('itemDetailHint');
   // UIElements.itemDetailPeriodDisplay = document.getElementById('itemDetailPeriodDisplay');
   UIElements.itemDetailList = document.getElementById('itemDetailList');
   UIElements.itemDetailPagination = document.getElementById('itemDetailPagination');
