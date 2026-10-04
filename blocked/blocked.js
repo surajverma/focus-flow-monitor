@@ -103,6 +103,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (goBackButton && settings[STORAGE_KEY_BLOCK_PAGE_CUSTOM_BUTTON_TEXT]) {
     goBackButton.textContent = settings[STORAGE_KEY_BLOCK_PAGE_CUSTOM_BUTTON_TEXT];
+  } else if (goBackButton && history.length <= 1) {
+    // Nothing to go back to (e.g. a blocked site opened in a new tab), so offer to close the tab instead.
+    goBackButton.textContent = 'Close Tab';
   }
 
   if (urlContainerEl) {
@@ -204,8 +207,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (history.length > 1) {
         history.back();
       } else {
-        goBackButton.textContent = 'Cannot Go Back';
-        goBackButton.disabled = true;
+        browser.tabs
+          .getCurrent()
+          .then((tab) => browser.tabs.remove(tab.id))
+          .catch(() => {
+            goBackButton.textContent = 'Cannot Go Back';
+            goBackButton.disabled = true;
+          });
       }
     });
   } else {

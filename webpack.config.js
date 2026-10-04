@@ -48,7 +48,7 @@ module.exports = (env, argv) => {
     { from: 'icons/*.png', to: 'icons/[name][ext]' },
     { from: 'data/default_config.json', to: 'data/' },
     // README.md and updates.json are removed from here to exclude them from the build output.
-    // If updates.json is needed for self-hosted beta, it should only be in betaConfig.
+    // updates.json is served from the update URL in manifest-beta.json, so it is not packaged.
     // Common JS files (will be transformed based on isProduction)
     {
       from: '**/*.js',
@@ -95,10 +95,6 @@ module.exports = (env, argv) => {
   };
 
   // Configuration for the "Beta" release (GitHub)
-  const betaPatterns = [
-    ...commonAssetPatterns,
-    { from: 'updates.json', to: '.' }, // Specifically include updates.json only for beta
-  ];
   const betaConfig = {
     ...baseConfig,
     name: 'betaConfig',
@@ -119,7 +115,7 @@ module.exports = (env, argv) => {
             //   return JSON.stringify(manifest, null, 2);
             // }
           },
-          ...betaPatterns, // Use patterns specific to beta build
+          ...commonAssetPatterns,
         ],
       }),
     ],

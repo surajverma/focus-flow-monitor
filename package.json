@@ -1,10 +1,11 @@
 {
   "name": "focus-flow-monitor",
-  "version": "0.9.5.0",
+  "version": "1.0.0.0",
   "description": "Master your online habits! Track time, visualize usage, block distractions, set limits, and enhance focus with the built-in Pomodoro (Tomato) timer.",
   "private": true,
   "scripts": {
     "update-manifests": "node scripts/update-versions.js",
+    "add-update": "node scripts/add-update.js",
     "build": "npm run build:beta",
     "build:beta": "npm run clean && npm run update-manifests && webpack --mode production --env target=beta --progress",
     "build:release": "npm run clean && npm run update-manifests && webpack --mode production --env target=release --progress",

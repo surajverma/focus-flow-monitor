@@ -3,6 +3,12 @@
     "focusflow-monitor@bleuflex.com": {
       "updates": [
         {
+          "version": "1.0.0.0",
+          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v1.0.0.0/359e173d93d4421eb63d-1.0.0.0.xpi",
+          "update_hash": "sha256:B3E183A7AE11881FC341C006E4ADA8B2BE48EB419E3F859BEB573A81A35D0CB1",
+          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v1.0.0.0"
+        },
+        {
           "version": "0.9.5.0",
           "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.9.5.0/359e173d93d4421eb63d-0.9.5.0.xpi",
           "update_hash": "sha256:130CABCCF44FEAF4A16793619758AAC0C0926C63FB31831899AC6B8DFA7F6117",
@@ -25,72 +31,6 @@
           "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.9.2.1/359e173d93d4421eb63d-0.9.2.1.xpi",
           "update_hash": "sha256:AEEAF6E73C98CADBA4BA9EA5BC50C7C0429ED5170726D13699FA005CC8A70740",
           "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.9.2.1"
-        },
-        {
-          "version": "0.9.0.4",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.9.0.4/359e173d93d4421eb63d-0.9.0.4.xpi",
-          "update_hash": "sha256:6115F14E583207A9F5C14666226D675489C028618444E165FAC13478824FF34D",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.9.0.4"
-        },
-        {
-          "version": "0.9.0.3",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.9.0.3/359e173d93d4421eb63d-0.9.0.3.xpi",
-          "update_hash": "sha256:374AECE2C5BFEA910224469907DF86CF54268AD519A39F9ADAC0D1276DEE5150",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.9.0.3"
-        },
-        {
-          "version": "0.9.0.1",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.9.0.1/359e173d93d4421eb63d-0.9.0.1.xpi",
-          "update_hash": "sha256:E99376E86E8D2ACB0CFE043CA4D7148CB15A63903287B3601BC5AFA60E0DABBF",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.9.0.1"
-        },
-        {
-          "version": "0.8.6",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.8.6/359e173d93d4421eb63d-0.8.6.xpi",
-          "update_hash": "sha256:881706671421CF24107E6D69862E913D221C294BBA4970A26C1A36DBB5064CBE",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.8.6"
-        },
-        {
-          "version": "0.8.4",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.8.4/359e173d93d4421eb63d-0.8.4.xpi",
-          "update_hash": "sha256:736C7C32595423FCF49E13AA78F82BE7D5E8E7AD0DDC7A3156D7A7C7F1D13F6B",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.8.4"
-        },
-        {
-          "version": "0.8.0.0",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.8.0.0/359e173d93d4421eb63d-0.8.0.0.xpi",
-          "update_hash": "sha256:9ED3D4E43F3B35511A665AB3EE9B33115A738888ABE3BC50AC45DCB0C17C5E1D",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.8.0.0"
-        },
-        {
-          "version": "0.7.3.3",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.7.3.3/359e173d93d4421eb63d-0.7.3.3.xpi",
-          "update_hash": "sha256:1197F0C73C346FEB9803F8E6D06B0201F77432CD6F192AB4DF4F9C6F105E6E46",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.7.3.3"
-        },
-        {
-          "version": "0.7.2.5",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.7.2.5/359e173d93d4421eb63d-0.7.2.5.xpi",
-          "update_hash": "sha256:7258E541DA17FA1B4B5A4A8EF921D5EC7ECD2901BF5ED0AF7F7A98AB2BB7FF73",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.7.2.5"
-        },
-        {
-          "version": "0.6.2.3",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/0.6.2.3/359e173d93d4421eb63d-0.6.2.3.xpi",
-          "update_hash": "sha256:E4CDADF3AABDA729E78DF8589B689AD56E999BABC7F121688D51A1E3B8BD10A4",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/0.6.2.3"
-        },
-        {
-          "version": "0.6.2.2",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/0.6.2.2/359e173d93d4421eb63d-0.6.2.2.xpi",
-          "update_hash": "sha256:0AB67C970F6DD51B2A6C7FBB72F4197C7FE7332E44A14A3F7712BC38F9B812B5",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/0.6.2.2"
-        },
-        {
-          "version": "0.6.1",
-          "update_link": "https://github.com/SurajVerma/focus-flow-monitor/releases/download/v0.6.1/359e173d93d4421eb63d-0.6.1.xpi",
-          "update_hash": "sha256:3643CACECDD8595F7A8924CA7FB72A7611F3956013A4CB30E9A6D3A6E8F5E8C5",
-          "update_info_url": "https://github.com/SurajVerma/focus-flow-monitor/releases/tag/v0.6.1"
         }
       ]
     }

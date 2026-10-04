@@ -464,14 +464,15 @@ button.delete-btn:hover {
   background-color: var(--bg-button-danger-hover);
   border-color: var(--bg-button-danger-hover);
 }
+/* Edit is a quiet secondary action; strong colors are kept for primary actions and deletion. */
 button.edit-btn {
-  background-color: var(--bg-button-warning);
-  color: var(--text-color-warning-button);
-  border-color: var(--bg-button-warning);
+  background-color: transparent;
+  color: var(--text-color-primary);
+  border-color: var(--border-color-input);
 }
 button.edit-btn:hover {
-  background-color: var(--bg-button-warning-hover);
-  border-color: var(--bg-button-warning-hover);
+  background-color: var(--bg-hover-row);
+  border-color: var(--border-color-input);
 }
 button.save-btn {
   background-color: var(--bg-button-success);
@@ -619,27 +620,40 @@ button.export-button:hover {
   margin-right: var(--spacing-xs);
 }
 
-/* Inline category assignment/badge for domain and item detail lists */
+/* Inline category assignment/badge for domain and item detail lists.
+   Fixed width so the time column stays put whether a row shows a badge or a dropdown. */
 #detailedTimeList li .inline-category-control,
 #itemDetailList li .inline-category-control {
   display: inline-flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  justify-content: flex-end;
+  flex: 0 0 170px;
+  min-width: 0;
+  margin-left: var(--spacing-sm);
 }
 #detailedTimeList li .inline-category-badge,
 #itemDetailList li .inline-category-badge {
   background-color: var(--bg-alternate-row);
   color: var(--text-color-secondary);
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: var(--border-radius);
   font-size: 0.85em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 #detailedTimeList li .inline-category-select,
 #itemDetailList li .inline-category-select {
-  min-width: 160px;
+  width: 100%;
   padding: 4px 8px;
   font-size: var(--font-size-sm);
+}
+@media (max-width: 600px) {
+  #detailedTimeList li .inline-category-control,
+  #itemDetailList li .inline-category-control {
+    flex-basis: 130px;
+  }
 }
 #ruleList li .rule-info {
   flex-grow: 1;
@@ -713,6 +727,9 @@ button.export-button:hover {
   border-radius: var(--border-radius);
   font-size: var(--font-size-sm);
   flex-shrink: 0; /* Prevent time from shrinking */
+  font-variant-numeric: tabular-nums;
+  min-width: 4.5em;
+  text-align: right;
 }
 
 .add-rule-form {
@@ -2094,7 +2111,7 @@ button.action-button.secondary:hover {
   align-items: center;
   gap: var(--spacing-sm, 8px);
   flex: 1 1 auto;
-  min-width: 250px; /* Ensure enough space for label and select */
+  min-width: 0;
 }
 
 .breakdown-controls label {
@@ -2109,7 +2126,9 @@ button.action-button.secondary:hover {
 .breakdown-controls select#breakdownCategorySelect {
   padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
   font-size: var(--font-size-base, 1rem);
-  flex-grow: 1;
+  flex-grow: 0;
+  width: 100%;
+  max-width: 280px;
   border: 1px solid var(--border-color-input);
   border-radius: var(--border-radius);
   background-color: var(--bg-input);
@@ -2122,7 +2141,36 @@ button.action-button.secondary:hover {
   box-shadow: var(--shadow-focus);
 }
 
+/* Short confirmation after assigning a category from the Dashboard lists */
+.assign-status-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: calc(100% - 32px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  border-radius: var(--border-radius);
+  background-color: var(--bg-card);
+  color: var(--text-color-primary);
+  border: 1px solid var(--border-color-light);
+  border-left: 4px solid var(--accent-color-green);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: var(--font-size-sm);
+}
+.assign-status-toast.error {
+  border-left-color: var(--accent-color-red);
+}
+.assign-status-toast[hidden] {
+  display: none;
+}
+
 /* #itemDetailList and its li elements inherit shared list styles */
+.item-detail-hint {
+  margin: 0 0 var(--spacing-sm, 8px);
+  font-size: var(--font-size-sm);
+  color: var(--text-color-secondary);
+}
 
 #itemDetailPagination {
   margin-top: var(--spacing-md, 12px);

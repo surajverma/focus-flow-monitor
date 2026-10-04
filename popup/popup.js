@@ -1,6 +1,3 @@
-/*****************************************************************
- * Updated File: for-gemini/popup/popup.js
- *****************************************************************/
 // --- Global Chart Instance ---
 let hourlyChartInstance = null;
 // --- Interval ID for live popup updates ---
@@ -493,25 +490,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Local calendar date (not UTC), so the popup matches the tracked day right after midnight.
+  const todayStr = getCurrentDateString();
+
   if (dateEl) {
-    const today = new Date();
-    const displayOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     try {
-      dateEl.textContent =
-        typeof formatDisplayDate === 'function'
-          ? formatDisplayDate(today.toISOString().split('T')[0])
-          : today.toLocaleDateString(navigator.language || 'en-US', displayOptions);
+      dateEl.textContent = formatDisplayDate(todayStr);
     } catch (e) {
       console.warn('Could not format date using browser locale, using default.', e);
-      dateEl.textContent = today.toDateString();
+      dateEl.textContent = new Date().toDateString();
     }
   }
-
-  const dateStringFetcher =
-    typeof getCurrentDateString === 'function'
-      ? getCurrentDateString
-      : () => new Date().toISOString().split('T')[0].replace(/-/g, '-');
-  const todayStr = dateStringFetcher();
 
   function formatPomodoroFocusedTime(seconds) {
     const safeSeconds = Math.max(0, Number(seconds) || 0);
@@ -672,7 +661,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    const isNotifyEffectivelyEnabled = state.notifyEnabled === true;
+    let hasNotificationPermission = false;
+    try {
+      hasNotificationPermission = await browser.permissions.contains({ permissions: ['notifications'] });
+    } catch (err) {
+      console.warn('[Popup] Error checking notification permission:', err);
+    }
+    const isNotifyEffectivelyEnabled = state.notifyEnabled === true && hasNotificationPermission;
 
     if (isNotifyEffectivelyEnabled) {
       pomodoroNotifyIcon.textContent = '🔔';
@@ -680,30 +675,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       pomodoroNotifyToggleBtn.setAttribute('aria-label', 'Disable Notifications');
     } else {
       pomodoroNotifyIcon.textContent = '🔕';
-      try {
-        const hasPermission = await browser.permissions.contains({ permissions: ['notifications'] });
-        if (hasPermission) {
-          pomodoroNotifyToggleBtn.title = 'Notifications: Off (Click to enable)';
-          pomodoroNotifyToggleBtn.setAttribute('aria-label', 'Enable Notifications');
-        } else {
-          pomodoroNotifyToggleBtn.title = 'Notifications: Setup Required (Click to open settings)';
-          pomodoroNotifyToggleBtn.setAttribute('aria-label', 'Setup Notifications in Options');
-        }
-      } catch (err) {
-        console.warn('[Popup] Error checking notification permission for title (updatePomodoroDisplay):', err);
-        pomodoroNotifyToggleBtn.title = 'Notifications: Check Settings';
-        pomodoroNotifyToggleBtn.setAttribute('aria-label', 'Check Notification Settings');
+      if (hasNotificationPermission) {
+        pomodoroNotifyToggleBtn.title = 'Notifications: Off (Click to enable)';
+        pomodoroNotifyToggleBtn.setAttribute('aria-label', 'Enable Notifications');
+      } else {
+        pomodoroNotifyToggleBtn.title = 'Notifications: Setup Required (Click to open settings)';
+        pomodoroNotifyToggleBtn.setAttribute('aria-label', 'Setup Notifications in Options');
       }
     }
 
-    /*****************************************************************
-     * START of Added/Modified Code
-     *****************************************************************/
-    // This logic is now wrapped in a check to see if we are showing a temporary message.
+    // Skip while a temporary status message is showing.
     if (pomodoroStatusMessageEl && !isDisplayingTempStatus) {
-      /*****************************************************************
-       * END of Added/Modified Code
-       *****************************************************************/
       if (state.timerState === 'paused') {
         pomodoroStatusMessageEl.textContent = 'Paused';
       } else if (
@@ -796,9 +778,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             state.remainingTime === state.durations[state.currentPhase];
 
           if (isAtStartOfPhase) {
-            /*****************************************************************
-             * START of Added/Modified Code
-             *****************************************************************/
             if (pomodoroStatusMessageEl) {
               isDisplayingTempStatus = true; // Set the flag
               pomodoroStatusMessageEl.textContent = 'Timer is already at the start.';
@@ -812,9 +791,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 isDisplayingTempStatus = false; // Clear the flag
               }, 3000);
             }
-            /*****************************************************************
-             * END of Added/Modified Code
-             *****************************************************************/
             return;
           }
           const message = `Reset current ${state.currentPhase} timer?`;
@@ -952,11 +928,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }, 1000);
 
-  browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((request) => {
     if (request.action === 'pomodoroStatusUpdate' && request.status) {
       console.log('[Popup] Received direct pomodoroStatusUpdate from background:', request.status);
       updatePomodoroDisplay(request.status);
     }
-    return true;
   });
 });
