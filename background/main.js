@@ -221,7 +221,7 @@ async function sendPomodoroNotification(phaseName, nextPhaseName) {
     browser.notifications.create(`pomodoro-${Date.now()}`, {
       type: 'basic',
       iconUrl: browser.runtime.getURL('icons/icon-48.png'),
-      title: `FocusFlow: ${phaseName} Complete!`,
+      title: `Tomato Clock: ${phaseName} complete`,
       message: `Time for your ${nextPhaseName.toLowerCase()}. Click Start in the popup when ready.`,
       priority: 2,
     });

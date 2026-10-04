@@ -63,9 +63,7 @@
                 class="summary-metric-box total-time-range-container"
                 style="display: none"
               >
-                <h3 id="totalTimeForRangeLabel">
-                  Total Time Online (<span class="stats-period">Selected Period</span>)
-                </h3>
+                <h3 id="totalTimeForRangeLabel">Browsing Time (<span class="stats-period">Selected Period</span>)</h3>
                 <div id="totalTimeForRangeValue" class="total-time-value">--h --m --s</div>
                 <p class="focus-score-description" id="averageTimeForRange">Calculating average...</p>
               </div>
@@ -73,7 +71,7 @@
                 <h3 id="pomodoroStatsLabel">Tomato Clock Stats (<span class="stats-period">Today</span>)</h3>
                 <div id="pomodoroSessionsCompleted" class="pomodoro-stat-value">Work Sessions: --</div>
                 <div id="pomodoroTimeFocused" class="pomodoro-stat-value">Time Focused: --h --m</div>
-                <p class="focus-score-description">Summary of your Pomodoro activity.</p>
+                <p class="focus-score-description">Summary of your Tomato Clock activity.</p>
               </div>
             </div>
             <!-- Insights banner: cycles through useful tips/metrics -->
@@ -130,17 +128,18 @@
             </div>
 
             <section id="itemDetailSection" class="stats-list-container" style="display: none">
-              <h3 id="itemDetailTitle">Breakdown Details</h3>
+              <h3 id="itemDetailTitle">Websites by Category</h3>
               <div class="breakdown-controls">
                 <div>
-                  <label for="breakdownCategorySelect">View websites in category:</label>
-                  <select id="breakdownCategorySelect" style="min-width: 150px">
-                    <option value="">-- Select Category --</option>
+                  <label for="breakdownCategorySelect">Category</label>
+                  <select id="breakdownCategorySelect">
+                    <option value="">Choose a category</option>
                   </select>
                 </div>
               </div>
+              <p id="itemDetailHint" class="item-detail-hint" hidden></p>
               <ul id="itemDetailList">
-                <li>Select an item from the chart or category list to see details.</li>
+                <li>Choose a category to see its websites.</li>
               </ul>
               <div class="pagination-controls" id="itemDetailPagination" style="display: none">
                 <button id="itemDetailPrevBtn" disabled>&laquo; Prev</button>
@@ -411,8 +410,8 @@
                 </label>
               </div>
               <p class="setting-description">
-                Receive browser notifications when a Pomodoro work session or break ends. If not enabled, you may need
-                to grant notification permission to the extension.
+                Receive browser notifications when a Tomato Clock work session or break ends. If not enabled, you may
+                need to grant notification permission to the extension.
               </p>
             </div>
 
@@ -802,11 +801,10 @@
         </div>
       </div>
     </div>
+    <div id="dashboardAssignStatus" class="assign-status-toast" role="status" aria-live="polite" hidden></div>
     <p class="attribution-footer">
       Created with ❤️ in India by
-      <a href="https://github.com/SurajVerma/focus-flow-monitor" target="_blank" rel="noopener noreferrer"
-        >Suraj Verma</a
-      >
+      <a href="https://github.com/surajverma" target="_blank" rel="noopener noreferrer">Suraj Verma</a>
     </p>
     <script src="../libs/chart.umd.js"></script>
     <script src="../src/core/domain-matcher.js"></script>

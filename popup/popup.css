@@ -1011,3 +1011,7 @@ a:focus-visible {
     animation: none !important;
   }
 }
+
+#hourlyChartCanvas {
+  cursor: pointer; /* Click toggles 12-hour / 24-hour labels */
+}

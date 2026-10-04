@@ -73,11 +73,11 @@ function renderLocalTools(data) {
     const actions = document.createElement('div');
     actions.className = 'feature-actions';
     const edit = document.createElement('button');
-    edit.className = 'action-button secondary';
+    edit.className = 'edit-btn';
     edit.textContent = 'Edit';
     edit.addEventListener('click', () => openLocalGoal(goal));
     const remove = document.createElement('button');
-    remove.className = 'action-button secondary';
+    remove.className = 'delete-btn';
     remove.textContent = 'Remove';
     remove.addEventListener('click', async () => {
       if (!window.confirm(`Remove the goal “${goal.name}”? Your browsing history will be kept.`)) return;

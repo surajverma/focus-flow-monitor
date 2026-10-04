@@ -110,6 +110,11 @@ async function testRuleFromForm() {
   }
 }
 
+// "7 Sept" style dates, matching the Best day card.
+function formatSummaryDate(dateKey) {
+  return new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 function renderWeeklySummary(data) {
   const summary = buildWeeklySummary({
     dailyDomainData: data.dailyDomainData || {},
@@ -125,7 +130,7 @@ function renderWeeklySummary(data) {
     status.textContent = 'No tracked time is available for this week yet.';
     metrics.textContent = '';
   } else {
-    status.textContent = `${summary.startDate} to ${summary.endDate} · ${summary.datesTracked} ${summary.datesTracked === 1 ? 'day' : 'days'} tracked`;
+    status.textContent = `${formatSummaryDate(summary.startDate)} – ${formatSummaryDate(summary.endDate)} · ${summary.datesTracked} ${summary.datesTracked === 1 ? 'day' : 'days'} tracked`;
     const focusScore = Number(summary.focusScore) || 0;
     const focusScoreChange = Number(summary.focusScoreChange) || 0;
     metrics.replaceChildren();
