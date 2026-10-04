@@ -14,7 +14,7 @@ Your tracking history and settings stay in your browser. No account, cloud sync,
 
 ![The two-column popup with today's activity and Tomato Clock](docs/screenshots/popup.png)
 
-This README describes the current source and beta feature set. The Firefox Add-ons release may not include every feature yet. See the [release notes](https://github.com/SurajVerma/focus-flow-monitor/releases) for changes included in each published version.
+This README describes the latest release. Beta builds on GitHub may include newer changes before they reach Firefox Add-ons. See the [release notes](https://github.com/SurajVerma/focus-flow-monitor/releases) for what each published version includes.
 
 ## Explore your activity
 
